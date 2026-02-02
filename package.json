@@ -1,0 +1,16 @@
+{
+  "name": "yr-kits",
+  "private": true,
+  "version": "0.0.0",
+  "description": "CLI로 유틸/컴포넌트 자동 설치하는 모노레포",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test"
+  },
+  "keywords": [],
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@10.0.0",
+  "engines": {
+    "node": ">=20"
+  }
+}

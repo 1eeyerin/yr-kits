@@ -1,0 +1,25 @@
+{
+  "name": "yr-kits",
+  "version": "0.0.0",
+  "description": "CLI로 유틸/컴포넌트 자동 설치",
+  "type": "module",
+  "bin": {
+    "yr-kits": "./dist/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"No tests yet\""
+  },
+  "keywords": [],
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@yr-kits/core": "workspace:*",
+    "@yr-kits/registry": "workspace:*",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2"
+  }
+}
