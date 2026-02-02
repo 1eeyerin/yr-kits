@@ -1,16 +1,12 @@
-import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
-import { copyTemplate } from "@yr-kits/core";
+import { copyTemplate } from "./copy-template.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const require = createRequire(import.meta.url);
 
-function getRegistryTemplatesPath(): string {
-  const registryPkgPath = require.resolve("@yr-kits/registry/package.json");
-  const registryRoot = dirname(registryPkgPath);
-  return join(registryRoot, "templates");
+function getTemplatesPath(): string {
+  return join(__dirname, "..", "templates");
 }
 
 const TEMPLATE_MAP: Record<string, string> = {
@@ -22,7 +18,7 @@ const program = new Command();
 program
   .name("yr-kits")
   .description("유틸/컴포넌트 자동 설치 CLI")
-  .version("0.0.0");
+  .version("0.1.0");
 
 program
   .command("add <name>")
@@ -40,9 +36,9 @@ program
       process.exit(1);
     }
     const destDir = options.dest ?? join(process.cwd(), "src/types");
-    const registryPath = getRegistryTemplatesPath();
+    const templatesPath = getTemplatesPath();
     try {
-      const destPath = await copyTemplate(registryPath, templateKey, destDir);
+      const destPath = await copyTemplate(templatesPath, templateKey, destDir);
       console.log(`추가됨: ${destPath}`);
     } catch (err) {
       console.error(err);
