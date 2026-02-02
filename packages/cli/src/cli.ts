@@ -12,21 +12,21 @@ function getTemplatesPath(): string {
 }
 
 const TEMPLATE_MAP: Record<string, string> = {
-  "strict-props-with-children": "utils/strict-props-with-children",
+  "strict-props-with-children": "types/strict-props-with-children",
 };
 
 const TEMPLATE_TO_ALIAS: Record<
   string,
   "utils" | "types" | "components" | "ui" | "lib" | "hooks"
 > = {
-  "utils/strict-props-with-children": "utils",
+  "types/strict-props-with-children": "types",
 };
 
 const program = new Command();
 
 program
   .name("yr-kits")
-  .description("유틸/컴포넌트 자동 설치 CLI")
+  .description("CLI to add utilities & components")
   .version("0.1.0");
 
 program
