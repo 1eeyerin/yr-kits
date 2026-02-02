@@ -1,6 +1,6 @@
 {
   "name": "yr-kits",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI로 유틸/컴포넌트 자동 설치",
   "type": "module",
   "bin": {
