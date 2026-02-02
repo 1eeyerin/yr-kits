@@ -2,6 +2,7 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
+import { loadConfig } from "./config.js";
 import { copyTemplate } from "./copy-template.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -14,6 +15,13 @@ const TEMPLATE_MAP: Record<string, string> = {
   "strict-props-with-children": "utils/strict-props-with-children",
 };
 
+const TEMPLATE_TO_ALIAS: Record<
+  string,
+  "utils" | "types" | "components" | "ui" | "lib" | "hooks"
+> = {
+  "utils/strict-props-with-children": "utils",
+};
+
 const program = new Command();
 
 program
@@ -24,11 +32,7 @@ program
 program
   .command("add <name>")
   .description("유틸 또는 컴포넌트 추가")
-  .option(
-    "-d, --dest <path>",
-    "대상 디렉터리 (기본: ./src/types)",
-    process.cwd() + "/src/types",
-  )
+  .option("-d, --dest <path>", "대상 디렉터리 (설정 파일·기본값보다 우선)")
   .action(async (name: string, options: { dest?: string }) => {
     const templateKey = TEMPLATE_MAP[name];
     if (!templateKey) {
@@ -36,10 +40,20 @@ program
       console.error(`지원: ${Object.keys(TEMPLATE_MAP).join(", ")}`);
       process.exit(1);
     }
-    const destDir = options.dest ?? join(process.cwd(), "src/types");
+    const cwd = process.cwd();
+    const config = await loadConfig(cwd);
+    const aliasKey = TEMPLATE_TO_ALIAS[templateKey];
+    const defaultDir =
+      aliasKey && config.aliases[aliasKey]
+        ? join(cwd, config.aliases[aliasKey]!)
+        : join(cwd, "src/utils");
+    const destDir = options.dest ?? defaultDir;
     const templatesPath = getTemplatesPath();
+    const useBasename = !!aliasKey;
     try {
-      const destPath = await copyTemplate(templatesPath, templateKey, destDir);
+      const destPath = await copyTemplate(templatesPath, templateKey, destDir, {
+        useBasename,
+      });
       console.log(`추가됨: ${destPath}`);
     } catch (err) {
       console.error(err);
