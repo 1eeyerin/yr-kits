@@ -9,7 +9,7 @@ export interface CopyTemplateOptions {
 /**
  * 템플릿 파일 하나를 대상 디렉터리에 복사합니다.
  * @param templatesPath - templates 디렉터리 절대 경로
- * @param templateKey - 템플릿 상대 경로 (확장자 제외, 예: 'utils/strict-props-with-children')
+ * @param templateKey - 템플릿 상대 경로 (확장자 제외, 예: 'types/strict-props-with-children')
  * @param destDir - 복사할 대상 디렉터리 절대 경로
  * @param options - useBasename: true면 destDir/파일명.ts 로만 복사
  * @returns 복사된 파일의 절대 경로
