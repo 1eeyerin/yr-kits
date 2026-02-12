@@ -1,14 +1,15 @@
 {
   "name": "yr-kits",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "CLI to add utilities & components for React",
   "type": "module",
   "bin": {
-    "yr-kits": "./dist/cli.js"
+    "yr-kits": "./dist/cli.mjs"
   },
-  "main": "./dist/cli.js",
+  "main": "./dist/cli.mjs",
   "scripts": {
-    "build": "tsc",
+    "build": "tsdown && ./scripts/copy-templates.sh",
+    "dev": "tsdown --watch",
     "prepublishOnly": "pnpm run build",
     "test": "echo \"No tests yet\""
   },
@@ -19,8 +20,7 @@
     "url": "https://github.com/1eeyerin/yr-kits.git"
   },
   "files": [
-    "dist",
-    "templates"
+    "dist"
   ],
   "dependencies": {
     "commander": "^12.1.0"
@@ -28,6 +28,7 @@
   "devDependencies": {
     "@types/node": "^22.10.0",
     "@types/react": "^19.2.10",
+    "tsdown": "^0.20.3",
     "typescript": "^5.7.2"
   }
 }

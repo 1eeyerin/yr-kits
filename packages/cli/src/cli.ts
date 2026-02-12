@@ -2,13 +2,13 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
-import { loadConfig } from "./config.js";
-import { copyTemplate } from "./copy-template.js";
+import { DEFAULT_CONFIG } from "./utils/config.js";
+import { copyTemplate } from "./utils/copy-template.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 function getTemplatesPath(): string {
-  return join(__dirname, "..", "templates");
+  return join(__dirname, "templates");
 }
 
 const TEMPLATE_MAP: Record<string, string> = {
@@ -31,11 +31,8 @@ program
 
 program
   .command("add <name>")
-  .description("지정한 이름의 유틸 또는 컴포넌트를 프로젝트에 추가합니다.")
-  .option(
-    "-d, --dest <path>",
-    "복사할 대상 디렉터리 경로. 설정 파일·기본값보다 우선합니다.",
-  )
+  .description("💬 지정한 이름의 유틸 또는 컴포넌트를 프로젝트에 추가합니다.")
+  .option("-d, --dest <path>", "복사할 대상 디렉터리 경로")
   .action(async (name: string, options: { dest?: string }) => {
     const templateKey = TEMPLATE_MAP[name];
     if (!templateKey) {
@@ -45,11 +42,10 @@ program
       process.exit(1);
     }
     const cwd = process.cwd();
-    const config = await loadConfig(cwd);
     const aliasKey = TEMPLATE_TO_ALIAS[templateKey];
     const defaultDir =
-      aliasKey && config.aliases[aliasKey]
-        ? join(cwd, config.aliases[aliasKey]!)
+      aliasKey && DEFAULT_CONFIG.aliases[aliasKey]
+        ? join(cwd, DEFAULT_CONFIG.aliases[aliasKey]!)
         : join(cwd, "src/utils");
     const destDir = options.dest ?? defaultDir;
     const templatesPath = getTemplatesPath();
