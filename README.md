@@ -1,3 +1,3 @@
 CLI to add utilities & components for React
 
-[https://yr-kits.vercel.app](https://yr-kits.vercel.app)
+<a href="https://yr-kits.vercel.app" target="_blank">https://yr-kits.vercel.app</a>
