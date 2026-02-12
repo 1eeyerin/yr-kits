@@ -31,13 +31,17 @@ program
 
 program
   .command("add <name>")
-  .description("유틸 또는 컴포넌트 추가")
-  .option("-d, --dest <path>", "대상 디렉터리 (설정 파일·기본값보다 우선)")
+  .description("지정한 이름의 유틸 또는 컴포넌트를 프로젝트에 추가합니다.")
+  .option(
+    "-d, --dest <path>",
+    "복사할 대상 디렉터리 경로. 설정 파일·기본값보다 우선합니다.",
+  )
   .action(async (name: string, options: { dest?: string }) => {
     const templateKey = TEMPLATE_MAP[name];
     if (!templateKey) {
-      console.error(`알 수 없는 이름: ${name}`);
-      console.error(`지원: ${Object.keys(TEMPLATE_MAP).join(", ")}`);
+      console.error(
+        `💬 [${name}]는 존재하는 템플릿이 아닙니다.\n---\n사용 가능한 목록 : [${Object.keys(TEMPLATE_MAP).join(", ")}]`,
+      );
       process.exit(1);
     }
     const cwd = process.cwd();
@@ -54,7 +58,7 @@ program
       const destPath = await copyTemplate(templatesPath, templateKey, destDir, {
         useBasename,
       });
-      console.log(`추가됨: ${destPath}`);
+      console.log(`[${destPath}]에 성공적으로 추가 되었어요 😎`);
     } catch (err) {
       console.error(err);
       process.exit(1);
