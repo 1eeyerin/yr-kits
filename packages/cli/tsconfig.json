@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": false,
+    "noEmit": false, //false로 바꿔서 번들러 없이 tsc의 컴파일 값을 사용하도록 되어있음
     "outDir": "./dist",
     "rootDir": "src"
   },

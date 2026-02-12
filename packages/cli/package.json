@@ -1,6 +1,6 @@
 {
   "name": "yr-kits",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "CLI to add utilities & components for React",
   "type": "module",
   "bin": {

@@ -24,21 +24,6 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
-  packages/core:
-    devDependencies:
-      '@types/node':
-        specifier: ^22.10.0
-        version: 22.19.7
-      typescript:
-        specifier: ^5.7.2
-        version: 5.9.3
-
-  packages/registry:
-    devDependencies:
-      '@types/react':
-        specifier: ^19.0.0
-        version: 19.2.10
-
   website:
     dependencies:
       '@docusaurus/core':
