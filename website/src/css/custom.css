@@ -40,6 +40,32 @@ p code {
   box-shadow: none;
 }
 
+.markdown pre[data-theme] {
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--ifm-toc-border-color);
+  overflow-x: auto;
+}
+
+.markdown pre[data-theme] code {
+  background: transparent;
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.markdown .theme-code-block {
+  --prism-background-color: #edf0f4 !important;
+}
+
+/* shiki token color mapping */
+[data-theme="light"] .markdown pre span[style*="--shiki-light"] {
+  color: var(--shiki-light);
+}
+
+[data-theme="dark"] .markdown pre span[style*="--shiki-dark"] {
+  color: var(--shiki-dark);
+}
+
 /* styles */
 .breadcrumbs__item--active .breadcrumbs__link {
   background: none;

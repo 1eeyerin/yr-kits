@@ -1,4 +1,5 @@
 import { themes as prismThemes } from "prism-react-renderer";
+import rehypePrettyCode from "rehype-pretty-code";
 import type { Config } from "@docusaurus/types";
 import type * as Preset from "@docusaurus/preset-classic";
 
@@ -30,6 +31,18 @@ const config: Config = {
           sidebarPath: "./sidebars.ts",
           routeBasePath: "docs",
           editUrl: undefined,
+          rehypePlugins: [
+            [
+              rehypePrettyCode,
+              {
+                theme: {
+                  light: "github-light",
+                  dark: "github-dark",
+                },
+                keepBackground: false,
+              },
+            ],
+          ],
         },
         blog: false,
         theme: {
