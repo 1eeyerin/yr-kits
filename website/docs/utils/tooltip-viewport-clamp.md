@@ -13,21 +13,20 @@ npx yr-kits add tooltip-viewport-clamp
 
 ## 제공 API
 
-- `getTooltipShiftX(tooltipEl, options?)`
+- `setTooltipViewportClampDefaults(options)`
 
-  툴팁 요소의 현재 위치와 너비를 기준으로,
-  화면 좌우 경계를 얼마나 벗어났는지 계산합니다.
-  그리고 safeGap 안쪽으로 맞추기 위한 이동값(px)을 반환합니다.
-
-- `applyTooltipViewportClamp(tooltipEl, options?)`
-
-  내부에서 `getTooltipShiftX`로 이동값을 구한 뒤,
-  cssVarName(기본값: --tooltip-shift-x) CSS 변수에 반영합니다.
-  적용된 최종 이동값(px)도 함께 반환합니다.
+  앱 상위에서 기본 옵션(safeGap, cssVarName)을 한 번 설정합니다.
+  하위 컴포넌트에서는 같은 옵션을 반복해서 넘길 필요가 없습니다.
+  이 설정 없이 다른 API를 호출하면 에러가 발생합니다.
 
 - `bindTooltipViewportClamp({ tooltipEl, triggerEl?, safeGap?, cssVarName? })`
 
   툴팁 열림, 리사이즈, 스크롤 때마다 위치 보정이 다시 적용되도록 이벤트를 연결합니다.
+  보정 해제를 위해 `destroy()`를 함께 반환합니다.
+
+- `getTooltipViewportClampAlignClass(align, options?)`
+
+  align(left/center/right)에 맞는 기본 정렬 + clamp 보정 클래스 문자열을 반환합니다.
 
 기본 옵션:
 
@@ -40,7 +39,16 @@ npx yr-kits add tooltip-viewport-clamp
 "use client";
 
 import { useEffect, useRef } from "react";
-import { bindTooltipViewportClamp } from "@/utils/tooltip-viewport-clamp";
+import {
+  bindTooltipViewportClamp,
+  getTooltipViewportClampAlignClass,
+  setTooltipViewportClampDefaults,
+} from "@/utils/tooltip-viewport-clamp";
+
+setTooltipViewportClampDefaults({
+  safeGap: 16,
+  cssVarName: "--tooltip-shift-x",
+});
 
 export function TooltipContent({
   children,
@@ -57,19 +65,12 @@ export function TooltipContent({
 
     const binding = bindTooltipViewportClamp({
       tooltipEl: el,
-      safeGap: 16,
-      cssVarName: "--tooltip-shift-x",
     });
 
     return () => binding.destroy();
   }, []);
 
-  const alignClass =
-    align === "left"
-      ? "left-0 translate-x-[var(--tooltip-shift-x)]"
-      : align === "center"
-        ? "left-1/2 translate-x-[calc(-50%_+_var(--tooltip-shift-x))]"
-        : "right-0 translate-x-[var(--tooltip-shift-x)]";
+  const alignClass = getTooltipViewportClampAlignClass(align);
 
   return (
     <span
