@@ -9,6 +9,11 @@ const sidebars: SidebarsConfig = {
       label: "types",
       items: ["types/strict-props-with-children"],
     },
+    {
+      type: "category",
+      label: "utils",
+      items: ["utils/ime-enter-handler", "utils/tooltip-viewport-clamp"],
+    },
   ],
 };
 

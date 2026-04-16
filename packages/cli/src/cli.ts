@@ -13,6 +13,8 @@ function getTemplatesPath(): string {
 
 const TEMPLATE_MAP: Record<string, string> = {
   "strict-props-with-children": "types/strict-props-with-children",
+  "ime-enter-handler": "utils/ime-enter-handler",
+  "tooltip-viewport-clamp": "utils/tooltip-viewport-clamp",
 };
 
 const TEMPLATE_TO_ALIAS: Record<
@@ -20,6 +22,8 @@ const TEMPLATE_TO_ALIAS: Record<
   "utils" | "types" | "components" | "ui" | "lib" | "hooks"
 > = {
   "types/strict-props-with-children": "types",
+  "utils/ime-enter-handler": "utils",
+  "utils/tooltip-viewport-clamp": "utils",
 };
 
 const program = new Command();
