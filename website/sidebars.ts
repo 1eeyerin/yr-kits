@@ -14,6 +14,11 @@ const sidebars: SidebarsConfig = {
       label: "utils",
       items: ["utils/ime-enter-handler", "utils/tooltip-viewport-clamp"],
     },
+    {
+      type: "category",
+      label: "hooks",
+      items: ["hooks/use-body-scroll-lock"],
+    },
   ],
 };
 
