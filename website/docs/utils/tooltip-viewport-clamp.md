@@ -3,19 +3,15 @@
 `tooltip-viewport-clamp`는 툴팁이 화면 밖으로 잘리는 문제를 줄여주는 유틸입니다.
 툴팁이 좌우 경계를 넘으면, 지정한 여백(`safeGap`) 안으로 들어오도록 X축 위치를 자동 보정합니다.
 
-적용 위치/대상:
-- 위치: 툴팁 콘텐츠 엘리먼트에 ref를 연결한 컴포넌트
-- 대상: 툴팁 요소의 X축 이동값(CSS 변수, 기본 `--tooltip-shift-x`)
-
 ## Install
 
 ```bash
-npx yr-kits add tooltip-viewport-clamp
+pnpm dlx yr-kits add tooltip-viewport-clamp
 ```
 
 기본 경로는 `src/utils/tooltip-viewport-clamp.ts`입니다.
 
-## 제공 API
+## API Reference
 
 - `setTooltipViewportClampDefaults(options)`
 
@@ -88,7 +84,7 @@ export function TooltipContent({
 }
 ```
 
-## 참고
+## Notes
 
 - 폭 제한은 스타일에서 별도로 지정하세요. 예: `w-[min(280px,calc(100vw-32px))]`
 - 정렬(`left/center/right`)은 기존 CSS 전략을 유지하고, 이 유틸은 x축 보정만 담당합니다.

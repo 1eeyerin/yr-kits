@@ -3,19 +3,15 @@
 `ime-enter-handler`는 한/중/일 입력(IME) 조합 중에 Enter가 잘못 처리되는 문제를 줄여주는 유틸입니다.
 조합 중 Enter는 무시하고, 조합이 끝난 뒤 Enter만 안전하게 submit 처리할 수 있게 도와줍니다.
 
-적용 위치/대상:
-- 위치: 검색창, 채팅 입력창, 폼 입력창의 `onKeyDown`
-- 대상: 키보드 이벤트의 Enter 처리 로직(조합 중 여부 확인)
-
 ## Install
 
 ```bash
-npx yr-kits add ime-enter-handler
+pnpm dlx yr-kits add ime-enter-handler
 ```
 
 기본 경로는 `src/utils/ime-enter-handler.ts`입니다.
 
-## 제공 API
+## API Reference
 
 - `isComposingIME(event)`
 
@@ -52,7 +48,7 @@ export function SearchInput({ onSubmit }: { onSubmit: () => void }) {
 }
 ```
 
-## 참고
+## Notes
 
 - key 또는 code가 Enter면 Enter로 판단합니다.
 - 이벤트 객체에 preventDefault가 없어도 동작합니다.
