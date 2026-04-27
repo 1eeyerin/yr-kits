@@ -16,7 +16,6 @@ import {
   applyUnifiedPatch,
   checkUnifiedPatch,
   createPatchFromTextReplacements,
-  normalizeUnifiedPatch,
   validatePatchPaths,
 } from "../lib/patch";
 import {
@@ -196,8 +195,6 @@ export const createDevCopilotBridgeServerWithDependencies = (
               (filePath) =>
                 resolveAndValidatePath(filePath, effectiveAllowedPaths, config.rootDir),
             );
-          } else if (parsed.patchPreview) {
-            patchPreview = normalizeUnifiedPatch(parsed.patchPreview);
           }
         } catch (error) {
           const failedResponse: CopilotChatResponse = {

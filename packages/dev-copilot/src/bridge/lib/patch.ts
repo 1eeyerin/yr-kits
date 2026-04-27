@@ -58,7 +58,7 @@ export const checkUnifiedPatch = async (patchPreview: string, cwd: string) => {
     `dev-copilot-check-${Date.now()}-${Math.random().toString(16).slice(2)}.patch`,
   );
 
-  await fs.writeFile(tempFilePath, `${patchPreview.trimEnd()}\n`, "utf-8");
+  await fs.writeFile(tempFilePath, patchPreview, "utf-8");
 
   try {
     await execFileAsync("git", ["apply", "--check", tempFilePath], { cwd });
@@ -119,8 +119,7 @@ const createGitPatch = async (
 
     return stdout
       .replaceAll(`a/old/${filePath}`, `a/${filePath}`)
-      .replaceAll(`b/new/${filePath}`, `b/${filePath}`)
-      .trim();
+      .replaceAll(`b/new/${filePath}`, `b/${filePath}`);
   } finally {
     await fs.rm(tempDir, { force: true, recursive: true });
   }
@@ -162,9 +161,9 @@ export const createPatchFromTextReplacements = async (
     patches.push(await createGitPatch(filePath, oldContent, newContent));
   }
 
-  const patchPreview = patches.join("\n").trim();
+  const patchPreview = patches.join("\n");
 
-  if (!patchPreview) {
+  if (!patchPreview.trim()) {
     throw new Error("변경할 내용이 없습니다.");
   }
 
@@ -181,7 +180,7 @@ export const applyUnifiedPatch = async (
     `dev-copilot-${Date.now()}-${Math.random().toString(16).slice(2)}.patch`,
   );
 
-  await fs.writeFile(tempFilePath, `${patchPreview.trimEnd()}\n`, "utf-8");
+  await fs.writeFile(tempFilePath, patchPreview, "utf-8");
 
   try {
     await execFileAsync("git", ["apply", "--check", tempFilePath], { cwd });

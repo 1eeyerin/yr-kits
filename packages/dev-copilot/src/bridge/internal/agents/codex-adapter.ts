@@ -31,7 +31,6 @@ const codexDiffResponseSchema = {
   type: "object",
   properties: {
     message: { type: "string" },
-    patchPreview: { type: "string" },
     warnings: {
       type: "array",
       items: { type: "string" },
@@ -50,7 +49,7 @@ const codexDiffResponseSchema = {
       },
     },
   },
-  required: ["message"],
+  required: ["message", "warnings", "changes"],
   additionalProperties: false,
 } as const;
 
