@@ -9,6 +9,8 @@ import type {
 } from "../types";
 
 const API_BASE_URL = "http://127.0.0.1:3339";
+const BRIDGE_CONNECTION_ERROR_MESSAGE =
+  "브릿지 서버에 연결하지 못했습니다. 브릿지 서버를 켜주세요.";
 
 const parseResponse = async <T>(response: Response): Promise<T> => {
   const payload = (await response.json()) as T | CopilotErrorResponse;
@@ -24,24 +26,47 @@ const parseResponse = async <T>(response: Response): Promise<T> => {
   return payload as T;
 };
 
+const normalizeNetworkError = (error: unknown): Error => {
+  if (
+    error instanceof TypeError &&
+    error.message.toLowerCase().includes("failed to fetch")
+  ) {
+    return new Error(BRIDGE_CONNECTION_ERROR_MESSAGE);
+  }
+
+  if (error instanceof Error) {
+    return error;
+  }
+
+  return new Error("요청 처리 중 오류가 발생했습니다.");
+};
+
 export const createCopilotApiClient = () => {
   const post = async <T, U>(path: string, body: T): Promise<U> => {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}${path}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
 
-    return parseResponse<U>(response);
+      return parseResponse<U>(response);
+    } catch (error) {
+      throw normalizeNetworkError(error);
+    }
   };
 
   return {
     status: async (agent?: CopilotAgent) => {
       const query = agent ? `?agent=${agent}` : "";
-      const response = await fetch(`${API_BASE_URL}/status${query}`);
-      return parseResponse<CopilotAgentStatusResponse>(response);
+      try {
+        const response = await fetch(`${API_BASE_URL}/status${query}`);
+        return parseResponse<CopilotAgentStatusResponse>(response);
+      } catch (error) {
+        throw normalizeNetworkError(error);
+      }
     },
     chat: (payload: CopilotChatRequest) =>
       post<CopilotChatRequest, CopilotChatResponse>("/chat", payload),
