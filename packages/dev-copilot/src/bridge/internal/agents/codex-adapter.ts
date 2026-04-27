@@ -13,6 +13,20 @@ import type {
 } from "./types";
 
 const execFileAsync = promisify(execFile);
+const codexBridgeConfigArgs = [
+  "-c",
+  "mcp_servers.notion.enabled=false",
+  "-c",
+  "mcp_servers.figma.enabled=false",
+  "-c",
+  "mcp_servers.linear.enabled=false",
+  "-c",
+  "mcp_servers.context7.enabled=false",
+  "-c",
+  "mcp_servers.playwright.enabled=false",
+  "-c",
+  "mcp_servers.zeplin.enabled=false",
+] as const;
 const codexDiffResponseSchema = {
   type: "object",
   properties: {
@@ -59,6 +73,16 @@ const parseEditResponse = async (outputPath: string) => {
   };
 };
 
+const isCodexAuthenticatedFromStatus = (statusOutput: string) => {
+  const normalized = statusOutput.toLowerCase();
+
+  if (/not logged in|login required|로그인 필요/.test(normalized)) {
+    return false;
+  }
+
+  return /logged in|로그인됨|로그인되어/.test(normalized);
+};
+
 const toCodexErrorMessage = (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
 
@@ -83,6 +107,7 @@ const getCodexModelName = async (cwd: string) => {
     const { stdout, stderr } = await execFileAsync(
       "codex",
       [
+        ...codexBridgeConfigArgs,
         "exec",
         "--cd",
         cwd,
@@ -134,6 +159,7 @@ export const codexAdapter: AgentAdapter = {
 
     const prompt = buildAgentPrompt(request);
     const args = [
+      ...codexBridgeConfigArgs,
       "exec",
       "--cd",
       request.cwd,
@@ -182,7 +208,7 @@ export const codexAdapter: AgentAdapter = {
         maxBuffer: 1024 * 128,
       });
       const output = `${stdout}\n${stderr}`.trim();
-      const authenticated = /logged in/i.test(output);
+      const authenticated = isCodexAuthenticatedFromStatus(output);
       const model = authenticated ? await getCodexModelName(cwd) : undefined;
 
       return {

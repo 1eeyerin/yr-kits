@@ -400,23 +400,6 @@ export function DevCopilotOverlay() {
 
         {open ? (
           <section style={panelStyle}>
-            <div style={railStyle}>
-              <button
-                type="button"
-                className="yrdc-pressable"
-                style={railToggleStyle}
-                onClick={() => setShowResponsePanel((prev) => !prev)}
-                aria-label={showResponsePanel ? "응답 패널 닫기" : "응답 패널 열기"}
-                title={showResponsePanel ? "응답 패널 닫기" : "응답 패널 열기"}
-              >
-                {showResponsePanel ? (
-                  <PanelRightCloseIcon aria-hidden style={{ width: 14, height: 14 }} />
-                ) : (
-                  <PanelRightOpenIcon aria-hidden style={{ width: 14, height: 14 }} />
-                )}
-              </button>
-            </div>
-
             <div style={inputPanelStyle}>
               <header>
                 <p style={titleStyle}>{UI_LABELS.title}</p>
@@ -516,6 +499,23 @@ export function DevCopilotOverlay() {
                   {UI_LABELS.editButton}
                 </button>
               </div>
+            </div>
+
+            <div style={railStyle}>
+              <button
+                type="button"
+                className="yrdc-pressable"
+                style={railToggleStyle}
+                onClick={() => setShowResponsePanel((prev) => !prev)}
+                aria-label={showResponsePanel ? "응답 패널 닫기" : "응답 패널 열기"}
+                title={showResponsePanel ? "응답 패널 닫기" : "응답 패널 열기"}
+              >
+                {showResponsePanel ? (
+                  <PanelRightCloseIcon aria-hidden style={{ width: 14, height: 14 }} />
+                ) : (
+                  <PanelRightOpenIcon aria-hidden style={{ width: 14, height: 14 }} />
+                )}
+              </button>
             </div>
 
             {showResponsePanel ? (
