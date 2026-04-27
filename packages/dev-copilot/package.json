@@ -1,0 +1,65 @@
+{
+  "name": "@yr-kits/dev-copilot",
+  "version": "0.1.0",
+  "description": "선택 텍스트 기반 Dev Copilot 오버레이와 로컬 브리지 실행 CLI",
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.mts",
+      "import": "./dist/types/index.mjs"
+    }
+  },
+  "bin": {
+    "dev-copilot": "./dist/bin/dev-copilot.mjs",
+    "dev-copilot-bridge": "./dist/bin/bridge.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "prepublishOnly": "pnpm run build",
+    "test": "echo \"No tests yet\"",
+    "release:patch": "npm version patch --no-git-tag-version && pnpm publish --access public --no-git-checks",
+    "release:minor": "npm version minor --no-git-tag-version && pnpm publish --access public --no-git-checks",
+    "release:major": "npm version major --no-git-tag-version && pnpm publish --access public --no-git-checks"
+  },
+  "keywords": [
+    "codex",
+    "copilot",
+    "react",
+    "overlay"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/1eeyerin/yr-kits.git"
+  },
+  "homepage": "https://yr-kits.vercel.app/docs/dev-copilot/overview",
+  "bugs": {
+    "url": "https://github.com/1eeyerin/yr-kits/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0 || ^19.0.0",
+    "react-dom": "^18.2.0 || ^19.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.3",
+    "tsdown": "^0.20.3",
+    "typescript": "^5.7.2"
+  }
+}

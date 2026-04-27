@@ -10,6 +10,7 @@ import {
 
 import { createCopilotApiClient } from "../lib/api-client";
 import type {
+  CopilotAgent,
   CopilotAgentStatusResponse,
   CopilotChatResponse,
   CopilotMode,
@@ -30,7 +31,10 @@ const DRAG_CLICK_THRESHOLD = 4;
 const PANEL_WIDTH = "min(1028px, calc(100vw - 48px))";
 const INPUT_PANEL_WIDTH = 420;
 const RAIL_WIDTH = 36;
-const AGENT_LABEL = "Codex CLI";
+const AGENT_LABELS: Record<CopilotAgent, string> = {
+  codex: "Codex CLI",
+  claude: "Claude Code CLI",
+};
 const UI_LABELS = {
   title: "Dev Copilot",
   subtitle: "텍스트를 선택한 뒤 프롬프트를 입력하세요.",
@@ -63,6 +67,7 @@ export function DevCopilotOverlay() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [agentStatus, setAgentStatus] =
     useState<CopilotAgentStatusResponse | null>(null);
+  const [selectedAgent, setSelectedAgent] = useState<CopilotAgent>("codex");
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const [showResponsePanel, setShowResponsePanel] = useState(false);
 
@@ -109,7 +114,7 @@ export function DevCopilotOverlay() {
     let ignore = false;
 
     apiClient
-      .status()
+      .status(selectedAgent)
       .then((status) => {
         if (!ignore) {
           setAgentStatus(status);
@@ -120,7 +125,7 @@ export function DevCopilotOverlay() {
           setAgentStatus({
             available: false,
             authenticated: false,
-            agent: AGENT_LABEL,
+            agent: selectedAgent,
             message:
               caughtError instanceof Error
                 ? caughtError.message
@@ -132,7 +137,7 @@ export function DevCopilotOverlay() {
     return () => {
       ignore = true;
     };
-  }, [apiClient, open]);
+  }, [apiClient, open, selectedAgent]);
 
   useEffect(() => {
     if (!open) {
@@ -281,6 +286,7 @@ export function DevCopilotOverlay() {
           route: currentRoute,
           fileHints: config.allowedPaths,
           previousResponse,
+          agent: selectedAgent,
         },
       });
 
@@ -418,7 +424,7 @@ export function DevCopilotOverlay() {
               </header>
 
               <div style={statusBoxStyle}>
-                <p style={statusLineStyle}>로컬 에이전트: {AGENT_LABEL}</p>
+                <p style={statusLineStyle}>로컬 에이전트: {AGENT_LABELS[selectedAgent]}</p>
                 {agentStatus?.model ? (
                   <p style={statusLineStyle}>모델: {agentStatus.model}</p>
                 ) : null}
@@ -435,6 +441,30 @@ export function DevCopilotOverlay() {
                       : ""}
                   </p>
                 ) : null}
+              </div>
+
+              <label style={labelStyle}>에이전트</label>
+              <div style={agentToggleRowStyle}>
+                {(["codex", "claude"] as CopilotAgent[]).map((agent) => {
+                  const active = selectedAgent === agent;
+                  return (
+                    <button
+                      key={agent}
+                      type="button"
+                      className="yrdc-pressable"
+                      onClick={() => setSelectedAgent(agent)}
+                      disabled={busy}
+                      style={{
+                        ...agentToggleButtonStyle,
+                        background: active ? "#111827" : "#e2e8f0",
+                        color: active ? "#ffffff" : "#1e293b",
+                        opacity: busy ? 0.6 : 1,
+                      }}
+                    >
+                      {AGENT_LABELS[agent]}
+                    </button>
+                  );
+                })}
               </div>
 
               <label style={labelStyle}>선택 텍스트</label>
@@ -499,7 +529,7 @@ export function DevCopilotOverlay() {
                     {busy ? (
                       <div style={busyContainerStyle}>
                         <span className="yrdc-spinner" style={spinnerStyle} />
-                        <span>Codex 응답을 기다리는 중입니다.</span>
+                        <span>{AGENT_LABELS[selectedAgent]} 응답을 기다리는 중입니다.</span>
                       </div>
                     ) : chatResult ? (
                       <article style={articleStyle}>
@@ -659,6 +689,22 @@ const textareaStyle: CSSProperties = {
   color: "#111827",
   boxSizing: "border-box",
   minHeight: 132,
+};
+
+const agentToggleRowStyle: CSSProperties = {
+  display: "flex",
+  gap: 8,
+  marginTop: 6,
+};
+
+const agentToggleButtonStyle: CSSProperties = {
+  border: 0,
+  borderRadius: 10,
+  padding: "8px 12px",
+  fontSize: 13,
+  fontWeight: 600,
+  lineHeight: 1.2,
+  cursor: "pointer",
 };
 
 const buttonRowStyle: CSSProperties = {

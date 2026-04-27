@@ -1,4 +1,5 @@
 import type {
+  CopilotAgent,
   CopilotApplyRequest,
   CopilotApplyResponse,
   CopilotAgentStatusResponse,
@@ -37,8 +38,9 @@ export const createCopilotApiClient = () => {
   };
 
   return {
-    status: async () => {
-      const response = await fetch(`${API_BASE_URL}/status`);
+    status: async (agent?: CopilotAgent) => {
+      const query = agent ? `?agent=${agent}` : "";
+      const response = await fetch(`${API_BASE_URL}/status${query}`);
       return parseResponse<CopilotAgentStatusResponse>(response);
     },
     chat: (payload: CopilotChatRequest) =>

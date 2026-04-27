@@ -1,5 +1,14 @@
 import { createDevCopilotBridgeConfig } from "../lib/config";
 import { createDevCopilotBridgeServer } from "../server/http-server";
+import type { CopilotAgent } from "../types";
+
+const resolveAgent = (value: string | undefined): CopilotAgent => {
+  if (value === "claude") {
+    return "claude";
+  }
+
+  return "codex";
+};
 
 export const runDevCopilotBridgeCli = async (argv: string[]) => {
   const portFlagIndex = argv.findIndex((value) => value === "-p");
@@ -11,13 +20,14 @@ export const runDevCopilotBridgeCli = async (argv: string[]) => {
     : positionalPort
       ? Number(positionalPort)
       : Number(process.env.DEV_COPILOT_BRIDGE_PORT ?? 3339);
+  const positionalAgent = argv.find((value) => value === "codex" || value === "claude");
 
   const config = createDevCopilotBridgeConfig({
     rootDir: process.cwd(),
     host: process.env.DEV_COPILOT_BRIDGE_HOST,
     port: Number.isFinite(resolvedPort) ? resolvedPort : 3339,
     corsOrigin: process.env.DEV_COPILOT_BRIDGE_CORS_ORIGIN ?? "*",
-    agent: process.env.DEV_COPILOT_AGENT ?? "codex",
+    agent: resolveAgent(positionalAgent),
     allowedPaths: (process.env.DEV_COPILOT_ALLOWED_PATHS ??
       "app,src,widgets,features,entities,shared,components")
       .split(",")

@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 
 import type {
+  CopilotAgent,
   CopilotApplyRequest,
   CopilotApplyResponse,
   CopilotChatRequest,
@@ -8,10 +9,8 @@ import type {
 } from "../types";
 import type { DevCopilotBridgeConfig } from "../lib/config";
 import { resolveAndValidatePath } from "../lib/guards";
-import {
-  getCodexAgentStatus,
-  runCodexBridge,
-} from "../internal/codex-bridge";
+import { resolveAgentAdapter } from "../internal/agents";
+import type { AgentAdapter } from "../internal/agents";
 import { buildCopilotProjectContext } from "../internal/project-context";
 import {
   applyUnifiedPatch,
@@ -35,18 +34,6 @@ type ParsedEditPayload = {
     newText: string;
   }>;
   warnings?: string[];
-};
-
-const toEditPayload = (rawText: string): ParsedEditPayload => {
-  try {
-    return JSON.parse(rawText) as ParsedEditPayload;
-  } catch {
-    return {
-      message: "응답을 JSON으로 해석하지 못했습니다. 원문을 표시합니다.",
-      patchPreview: rawText,
-      warnings: ["모델 응답이 JSON 스키마를 따르지 않았습니다."],
-    };
-  }
 };
 
 const createCorsHeaders = (config: DevCopilotBridgeConfig) => ({
@@ -112,7 +99,40 @@ const toPatchSummary = (changedFiles: string[]) => {
     : `${changedFiles.length}개 파일에 수정이 반영되었습니다.`;
 };
 
+const toEditPayload = (payload: ParsedEditPayload): ParsedEditPayload => {
+  return payload;
+};
+
+const isCopilotAgent = (value: string | null): value is CopilotAgent => {
+  return value === "codex" || value === "claude";
+};
+
+const resolveRequestedAgent = (
+  config: DevCopilotBridgeConfig,
+  requestAgent?: CopilotAgent,
+  queryAgent?: string | null,
+): CopilotAgent => {
+  if (requestAgent) {
+    return requestAgent;
+  }
+
+  if (isCopilotAgent(queryAgent)) {
+    return queryAgent;
+  }
+
+  return config.agent;
+};
+
 export const createDevCopilotBridgeServer = (config: DevCopilotBridgeConfig) => {
+  return createDevCopilotBridgeServerWithDependencies(config, { resolveAdapter: resolveAgentAdapter });
+};
+
+export const createDevCopilotBridgeServerWithDependencies = (
+  config: DevCopilotBridgeConfig,
+  dependencies: {
+    resolveAdapter: (agent: CopilotAgent) => AgentAdapter;
+  },
+) => {
   const server = createServer(async (request, response) => {
     const method = request.method ?? "GET";
     const url = new URL(request.url ?? "/", `http://${config.host}:${config.port}`);
@@ -125,17 +145,10 @@ export const createDevCopilotBridgeServer = (config: DevCopilotBridgeConfig) => 
 
     try {
       if (method === "GET" && url.pathname === "/status") {
-        if (config.agent !== "codex") {
-          sendJson(response, config, 200, {
-            available: false,
-            authenticated: false,
-            agent: config.agent,
-            message: "현재 지원되는 로컬 에이전트는 codex입니다.",
-          });
-          return;
-        }
+        const agent = resolveRequestedAgent(config, undefined, url.searchParams.get("agent"));
+        const adapter = dependencies.resolveAdapter(agent);
 
-        sendJson(response, config, 200, await getCodexAgentStatus(config.rootDir));
+        sendJson(response, config, 200, await adapter.getStatus(config.rootDir));
         return;
       }
 
@@ -143,13 +156,15 @@ export const createDevCopilotBridgeServer = (config: DevCopilotBridgeConfig) => 
         const payload = await readJsonBody<CopilotChatRequest>(request);
         const effectiveAllowedPaths =
           sanitizeAllowedPaths(payload.context?.fileHints) ?? config.allowedPaths;
+        const agent = resolveRequestedAgent(config, payload.context?.agent);
+        const adapter = dependencies.resolveAdapter(agent);
 
         if (!payload.prompt?.trim()) {
           sendJson(response, config, 400, { error: "프롬프트를 입력해 주세요." });
           return;
         }
 
-        const agentResponse = await runCodexBridge({
+        const agentResponse = await adapter.run({
           selectedText: payload.selectedText ?? "",
           prompt: payload.prompt,
           mode: payload.mode,
@@ -163,14 +178,14 @@ export const createDevCopilotBridgeServer = (config: DevCopilotBridgeConfig) => 
         if (payload.mode === "answer") {
           const answerResponse: CopilotChatResponse = {
             message: agentResponse.message,
-            warnings: [],
+            warnings: agentResponse.warnings,
           };
 
           sendJson(response, config, 200, answerResponse);
           return;
         }
 
-        const parsed = toEditPayload(JSON.stringify(agentResponse));
+        const parsed = toEditPayload(agentResponse);
         let patchPreview = "";
 
         try {
@@ -188,7 +203,7 @@ export const createDevCopilotBridgeServer = (config: DevCopilotBridgeConfig) => 
           const failedResponse: CopilotChatResponse = {
             message:
               parsed.message ??
-              "Codex가 수정안을 만들었지만 실제 파일 내용과 매칭하지 못했습니다.",
+              "에이전트가 수정안을 만들었지만 실제 파일 내용과 매칭하지 못했습니다.",
             warnings: [
               ...(parsed.warnings ?? []),
               error instanceof Error ? error.message : "수정안 생성에 실패했습니다.",
@@ -221,7 +236,7 @@ export const createDevCopilotBridgeServer = (config: DevCopilotBridgeConfig) => 
           const invalidPatchResponse: CopilotChatResponse = {
             message:
               parsed.message ??
-              "Codex가 수정안을 만들었지만 적용 가능한 diff 형식이 아닙니다.",
+              "에이전트가 수정안을 만들었지만 적용 가능한 diff 형식이 아닙니다.",
             patchPreview,
             warnings: [
               ...(parsed.warnings ?? []),
@@ -235,7 +250,7 @@ export const createDevCopilotBridgeServer = (config: DevCopilotBridgeConfig) => 
 
         const patch = createProposedPatch(patchPreview, effectiveAllowedPaths);
         const chatResponse: CopilotChatResponse = {
-          message: parsed.message ?? "Codex가 패치 미리보기를 생성했습니다.",
+          message: parsed.message ?? "에이전트가 패치 미리보기를 생성했습니다.",
           patchPreview,
           patchId: patch.patchId,
           warnings: parsed.warnings ?? [],
