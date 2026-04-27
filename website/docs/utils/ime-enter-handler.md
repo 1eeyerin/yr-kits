@@ -6,7 +6,7 @@
 ## Install
 
 ```bash
-pnpm dlx yr-kits add ime-enter-handler
+pnpm dlx @yr-kits/cli add ime-enter-handler
 ```
 
 기본 경로는 `src/utils/ime-enter-handler.ts`입니다.

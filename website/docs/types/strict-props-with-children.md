@@ -6,7 +6,7 @@
 ## Install
 
 ```bash
-pnpm dlx yr-kits add strict-props-with-children
+pnpm dlx @yr-kits/cli add strict-props-with-children
 ```
 
 ## Example

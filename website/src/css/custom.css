@@ -120,3 +120,23 @@ p code {
     margin-top: 3rem !important;
   }
 }
+
+/* CLI intro tables */
+.markdown .cli-template-table-wrap {
+  width: 100%;
+}
+
+.markdown .cli-template-table {
+  width: 100% !important;
+  table-layout: fixed;
+}
+
+.markdown .cli-template-table th:first-child,
+.markdown .cli-template-table td:first-child {
+  width: 36%;
+}
+
+.markdown .cli-template-table th:last-child,
+.markdown .cli-template-table td:last-child {
+  width: 64%;
+}

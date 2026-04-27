@@ -6,7 +6,7 @@
 ## Install
 
 ```bash
-pnpm dlx yr-kits add tooltip-viewport-clamp
+pnpm dlx @yr-kits/cli add tooltip-viewport-clamp
 ```
 
 기본 경로는 `src/utils/tooltip-viewport-clamp.ts`입니다.

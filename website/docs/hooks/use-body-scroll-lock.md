@@ -7,7 +7,7 @@
 ## Install
 
 ```bash
-pnpm dlx yr-kits add use-body-scroll-lock
+pnpm dlx @yr-kits/cli add use-body-scroll-lock
 ```
 
 기본 경로는 `src/hooks/use-body-scroll-lock.ts`입니다.
