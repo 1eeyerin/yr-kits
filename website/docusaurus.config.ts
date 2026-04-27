@@ -53,6 +53,9 @@ const config: Config = {
   ],
 
   themeConfig: {
+    colorMode: {
+      disableSwitch: true,
+    },
     image: "img/docusaurus-social-card.jpg",
     navbar: {
       title: "yr-kits",
