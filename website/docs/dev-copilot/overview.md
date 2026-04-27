@@ -4,6 +4,8 @@
 
 ## Install
 
+로컬 Codex CLI와 통신하는 브리지 서버를 실행하기 위해 `pnpm run dev-copilot-bridge`를 실행해야 합니다.
+
 ```bash
 npx @yr-kits/dev-copilot init
 pnpm run dev-copilot-bridge
