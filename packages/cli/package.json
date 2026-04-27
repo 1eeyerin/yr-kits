@@ -1,5 +1,5 @@
 {
-  "name": "yr-kits",
+  "name": "@yr-kits/cli",
   "version": "0.1.7",
   "description": "CLI to add utilities & components for React",
   "type": "module",
@@ -11,7 +11,10 @@
     "build": "tsdown && ./scripts/copy-templates.sh",
     "dev": "tsdown --watch",
     "prepublishOnly": "pnpm run build",
-    "test": "echo \"No tests yet\""
+    "test": "echo \"No tests yet\"",
+    "release:patch": "npm version patch --no-git-tag-version && pnpm publish --access public --no-git-checks",
+    "release:minor": "npm version minor --no-git-tag-version && pnpm publish --access public --no-git-checks",
+    "release:major": "npm version major --no-git-tag-version && pnpm publish --access public --no-git-checks"
   },
   "keywords": [],
   "license": "MIT",
@@ -22,6 +25,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "commander": "^12.1.0"
   },
