@@ -11,7 +11,7 @@ pnpm dlx @yr-kits/dev-copilot init
 pnpm run dev-copilot-bridge
 ```
 
-### 기본값
+### Defaults
 
 - 기본 에이전트: `codex`
 - 에이전트 선택 옵션: `CLI 인자(codex/claude)`
@@ -69,12 +69,6 @@ export function AppDevCopilot() {
 | ------------ | -------- | -------------------------------------- |
 | enabled      | boolean  | process.env.NODE_ENV === "development" |
 | allowedPaths | string[] | ["."]                                  |
-
-## 동작 방식
-
-- 오버레이에서 `Codex CLI` / `Claude Code CLI`를 요청 단위로 선택할 수 있습니다.
-- 브리지 실행 시 `CLI 인자(codex/claude)`를 주면 해당 에이전트로 동작하고, 인자가 없으면 `codex`로 동작합니다.
-- 패치 적용 범위는 항상 `allowedPaths` 안에서만 동작합니다.
 
 ## Troubleshooting
 
