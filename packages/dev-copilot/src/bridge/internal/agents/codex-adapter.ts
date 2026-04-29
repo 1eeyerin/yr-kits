@@ -102,6 +102,12 @@ const isCodexAuthenticatedFromStatus = (statusOutput: string) => {
   return /logged in|로그인됨|로그인되어/.test(normalized);
 };
 
+const isCodexLoginRequiredError = (error: unknown) => {
+  const details = extractCliErrorDetails(error);
+
+  return /not logged in|login required|authentication|unauthorized/i.test(details.merged);
+};
+
 const toCodexErrorMessage = (error: unknown) => {
   const details = extractCliErrorDetails(error);
 
@@ -121,12 +127,13 @@ const toCodexErrorMessage = (error: unknown) => {
 
   if (/Error loading config\.toml: invalid transport/i.test(details.merged)) {
     return [
-      "Codex 설정 파일의 MCP transport를 현재 Codex CLI가 해석하지 못했습니다.",
-      "Codex CLI를 업데이트하거나 DEV_COPILOT_CODEX_BIN으로 사용할 Codex 실행 파일을 지정해 주세요.",
+      "현재 Codex CLI가 Codex 설정 파일의 MCP 형식을 해석하지 못했습니다.",
+      "Dev Copilot이 호환되는 Codex 실행 파일을 자동으로 찾지 못했습니다.",
+      "Codex CLI를 업데이트한 뒤 다시 시도해 주세요.",
     ].join(" ");
   }
 
-  if (/not logged in|login required|authentication|unauthorized/i.test(details.merged)) {
+  if (isCodexLoginRequiredError(error)) {
     return "Codex CLI 로그인이 필요합니다. 터미널에서 `codex login`을 실행해 주세요.";
   }
 
@@ -270,13 +277,14 @@ export const codexAdapter: AgentAdapter = {
 
       return createUnauthenticatedStatus({
         agent: "codex",
-        message: details.message,
-        loginCommand: "codex login",
+        message: toCodexErrorMessage(error),
+        loginCommand: isCodexLoginRequiredError(error) ? "codex login" : undefined,
       });
     }
   },
 };
 
 export const __internal = {
+  isCodexLoginRequiredError,
   toCodexErrorMessage,
 };
