@@ -12,10 +12,25 @@
       "import": "./dist/index.mjs",
       "default": "./dist/index.mjs"
     },
+    "./app": {
+      "types": "./dist/app/index.d.mts",
+      "import": "./dist/app/index.mjs",
+      "default": "./dist/app/index.mjs"
+    },
+    "./widgets/copilot-overlay": {
+      "types": "./dist/widgets/copilot-overlay/index.d.mts",
+      "import": "./dist/widgets/copilot-overlay/index.mjs",
+      "default": "./dist/widgets/copilot-overlay/index.mjs"
+    },
+    "./bridge/app": {
+      "types": "./dist/bridge/app/index.d.mts",
+      "import": "./dist/bridge/app/index.mjs",
+      "default": "./dist/bridge/app/index.mjs"
+    },
     "./types": {
-      "types": "./dist/types/index.d.mts",
-      "import": "./dist/types/index.mjs",
-      "default": "./dist/types/index.mjs"
+      "types": "./dist/types.d.mts",
+      "import": "./dist/types.mjs",
+      "default": "./dist/types.mjs"
     }
   },
   "bin": {
@@ -32,7 +47,8 @@
     "test": "echo \"No tests yet\"",
     "release:patch": "npm version patch --no-git-tag-version && pnpm publish --access public --no-git-checks",
     "release:minor": "npm version minor --no-git-tag-version && pnpm publish --access public --no-git-checks",
-    "release:major": "npm version major --no-git-tag-version && pnpm publish --access public --no-git-checks"
+    "release:major": "npm version major --no-git-tag-version && pnpm publish --access public --no-git-checks",
+    "lint:architecture": "node ./scripts/check-boundaries.mjs"
   },
   "keywords": [
     "codex",

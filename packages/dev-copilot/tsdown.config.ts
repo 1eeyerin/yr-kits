@@ -3,9 +3,12 @@ import { defineConfig } from "tsdown";
 export default defineConfig({
   entry: [
     "src/index.ts",
-    "src/types/index.ts",
+    "src/types.ts",
+    "src/app/index.ts",
+    "src/widgets/copilot-overlay/index.ts",
+    "src/bridge/app/index.ts",
     "src/bin/dev-copilot.ts",
-    "src/bin/bridge.ts",
+    "src/bin/bridge.ts"
   ],
   format: ["esm"],
   target: "node20",
@@ -13,5 +16,5 @@ export default defineConfig({
   dts: true,
   platform: "node",
   sourcemap: true,
-  minify: false,
+  minify: false
 });

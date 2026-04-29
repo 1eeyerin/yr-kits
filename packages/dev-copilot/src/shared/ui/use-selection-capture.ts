@@ -2,12 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-const OVERLAY_ATTRIBUTE = "data-dev-copilot-overlay";
+export const OVERLAY_ATTRIBUTE = "data-dev-copilot-overlay";
 
 const toSelectionText = () => {
   const selection = window.getSelection();
-  const value = selection?.toString().trim() ?? "";
-  return value;
+  return selection?.toString().trim() ?? "";
 };
 
 const isNodeInsideOverlay = (node: Node | null) => {
@@ -16,7 +15,6 @@ const isNodeInsideOverlay = (node: Node | null) => {
   }
 
   const element = node instanceof Element ? node : node.parentElement;
-
   return Boolean(element?.closest(`[${OVERLAY_ATTRIBUTE}]`));
 };
 
@@ -61,8 +59,5 @@ export const useSelectionCapture = () => {
   return {
     selectedText,
     setSelectedText,
-    clearSelection: () => setSelectedText(""),
   };
 };
-
-export { OVERLAY_ATTRIBUTE };

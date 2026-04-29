@@ -6,9 +6,14 @@ import type {
   CopilotChatRequest,
   CopilotChatResponse,
   CopilotErrorResponse,
-} from "../types";
+} from "../contracts/copilot";
 
-const API_BASE_URL = "http://127.0.0.1:3339";
+interface CreateCopilotApiClientOptions {
+  baseUrl?: string;
+  fetcher?: typeof fetch;
+}
+
+const DEFAULT_BASE_URL = "http://127.0.0.1:3339";
 const BRIDGE_CONNECTION_ERROR_MESSAGE =
   "브릿지 서버에 연결하지 못했습니다. 브릿지 서버를 켜주세요.";
 
@@ -41,10 +46,15 @@ const normalizeNetworkError = (error: unknown): Error => {
   return new Error("요청 처리 중 오류가 발생했습니다.");
 };
 
-export const createCopilotApiClient = () => {
+export const createCopilotApiClient = (
+  options: CreateCopilotApiClientOptions = {},
+) => {
+  const baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
+  const fetcher = options.fetcher ?? fetch;
+
   const post = async <T, U>(path: string, body: T): Promise<U> => {
     try {
-      const response = await fetch(`${API_BASE_URL}${path}`, {
+      const response = await fetcher(`${baseUrl}${path}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -62,7 +72,7 @@ export const createCopilotApiClient = () => {
     status: async (agent?: CopilotAgent) => {
       const query = agent ? `?agent=${agent}` : "";
       try {
-        const response = await fetch(`${API_BASE_URL}/status${query}`);
+        const response = await fetcher(`${baseUrl}/status${query}`);
         return parseResponse<CopilotAgentStatusResponse>(response);
       } catch (error) {
         throw normalizeNetworkError(error);
