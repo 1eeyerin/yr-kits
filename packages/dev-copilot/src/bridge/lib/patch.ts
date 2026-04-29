@@ -40,7 +40,7 @@ interface TextReplacement {
 }
 
 const withOriginalLineIndent = (content: string, oldText: string, newText: string) => {
-  if (!newText.includes("\n") || oldText.includes("\n")) {
+  if (!newText.includes("\n")) {
     return newText;
   }
 
@@ -55,6 +55,54 @@ const withOriginalLineIndent = (content: string, oldText: string, newText: strin
   const indent = linePrefix.match(/^[ \t]*/)?.[0] ?? "";
 
   return indent ? newText.replaceAll("\n", `\n${indent}`) : newText;
+};
+
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const createWhitespaceTolerantPattern = (value: string) => {
+  const tokens = value.trim().split(/\s+/).filter(Boolean);
+
+  if (!tokens.length) {
+    return null;
+  }
+
+  return new RegExp(tokens.map(escapeRegExp).join("\\s+"));
+};
+
+const replaceText = (
+  content: string,
+  oldText: string,
+  newText: string,
+) => {
+  if (content.includes(oldText)) {
+    return {
+      replaced: true,
+      content: content.replace(
+        oldText,
+        withOriginalLineIndent(content, oldText, newText),
+      ),
+    };
+  }
+
+  const whitespaceTolerantPattern = createWhitespaceTolerantPattern(oldText);
+  const match = whitespaceTolerantPattern?.exec(content);
+
+  if (!match) {
+    return {
+      replaced: false,
+      content,
+    };
+  }
+
+  const matchedText = match[0];
+
+  return {
+    replaced: true,
+    content: content.replace(
+      matchedText,
+      withOriginalLineIndent(content, matchedText, newText),
+    ),
+  };
 };
 
 export const normalizeUnifiedPatch = (patchPreview: string) => {
@@ -174,14 +222,13 @@ export const createPatchFromTextReplacements = async (
     let newContent = oldContent;
 
     for (const replacement of fileReplacements) {
-      if (!newContent.includes(replacement.oldText)) {
+      const result = replaceText(newContent, replacement.oldText, replacement.newText);
+
+      if (!result.replaced) {
         throw new Error(`원문을 파일에서 찾을 수 없습니다: ${filePath}`);
       }
 
-      newContent = newContent.replace(
-        replacement.oldText,
-        withOriginalLineIndent(newContent, replacement.oldText, replacement.newText),
-      );
+      newContent = result.content;
     }
 
     if (newContent === oldContent) {

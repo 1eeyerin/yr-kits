@@ -35,6 +35,8 @@ export const buildAgentPrompt = (request: AgentPromptRequest) => {
     "Put repository-relative file path(path), exact old text(oldText), and replacement text(newText) into the changes array.",
     "Never use absolute paths. The path must be relative to the repository root, for example src/features/article/model/data.ts.",
     "oldText must exactly match the file content and must not use ellipsis.",
+    "If the selected text spans multiple rendered lines, use the actual file text from project context for oldText.",
+    "newText must be meaningfully different from oldText.",
     "Ground the proposal in the selected text, user prompt, and provided project context.",
     "Write the message field in Korean.",
     "",
