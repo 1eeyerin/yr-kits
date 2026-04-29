@@ -18,6 +18,7 @@ import { OVERLAY_LABELS } from "./tokens";
 
 interface CopilotResponsePanelProps {
   busy: boolean;
+  applying: boolean;
   error: string | null;
   chatResult: CopilotChatResponse | null;
   selectedAgent: CopilotAgent;
@@ -26,6 +27,7 @@ interface CopilotResponsePanelProps {
 
 export function CopilotResponsePanel({
   busy,
+  applying,
   error,
   chatResult,
   selectedAgent,
@@ -65,10 +67,10 @@ export function CopilotResponsePanel({
                       type="button"
                       className="yrdc-pressable"
                       onClick={onApply}
-                      disabled={busy}
-                      style={createActionButtonStyle("success", busy, { alignSelf: "flex-start" })}
+                      disabled={applying}
+                      style={createActionButtonStyle("success", applying, { alignSelf: "flex-start" })}
                     >
-                      {OVERLAY_LABELS.applyButton}
+                      {applying ? OVERLAY_LABELS.applyingButton : OVERLAY_LABELS.applyButton}
                     </button>
                   ) : null}
                 </>

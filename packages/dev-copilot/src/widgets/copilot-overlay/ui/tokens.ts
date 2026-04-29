@@ -35,11 +35,12 @@ export const OVERLAY_COLOR = {
 
 export const OVERLAY_LABELS = {
   title: "Dev Copilot",
-  subtitle: "텍스트를 선택한 뒤 프롬프트를 입력하세요.",
+  subtitle: "텍스트를 드래그한 뒤 Command+F(또는 Ctrl+F)로 Copilot을 열어 주세요.",
   promptPlaceholder: "무엇을 도와드릴까요?",
   askButton: "질문",
   editButton: "코드 수정 제안",
   applyButton: "미리보기 적용",
+  applyingButton: "적용 중...",
 } as const;
 
 export const OVERLAY_STYLE_TEXT = `

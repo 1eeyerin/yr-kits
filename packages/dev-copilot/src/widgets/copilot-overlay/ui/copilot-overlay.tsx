@@ -58,6 +58,35 @@ export function CopilotOverlayWidget() {
     return () => document.removeEventListener("pointerdown", onPointerDownOutside);
   }, [session.open, session.closePanel, draggable.resetDragState]);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const isFindShortcut = event.key.toLowerCase() === "f" && (event.metaKey || event.ctrlKey);
+
+      if (!isFindShortcut) {
+        return;
+      }
+
+      const target = event.target;
+      if (target instanceof Element && target.closest(`[${OVERLAY_ATTRIBUTE}]`)) {
+        return;
+      }
+
+      const currentSelection = window.getSelection()?.toString().trim() ?? "";
+      const nextSelectedText = currentSelection || selectedText.trim();
+
+      if (!nextSelectedText) {
+        return;
+      }
+
+      event.preventDefault();
+      setSelectedText(nextSelectedText);
+      session.openPanel();
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [selectedText, setSelectedText, session.openPanel]);
+
   if (!config.enabled) {
     return null;
   }
@@ -99,7 +128,7 @@ export function CopilotOverlayWidget() {
       return;
     }
 
-    session.startRequest();
+    session.startApply();
 
     try {
       const result = await applyCopilotPatch(session.chatResult.patchId, config.bridgeBaseUrl);
@@ -107,8 +136,9 @@ export function CopilotOverlayWidget() {
         session.showToast(result.summary);
         window.setTimeout(session.clearToast, TOAST_DURATION_MS);
       }
+      session.finishApply();
     } catch (error) {
-      session.failRequest(toErrorMessage(error, "패치 적용 중 오류가 발생했습니다."));
+      session.failApply(toErrorMessage(error, "패치 적용 중 오류가 발생했습니다."));
     }
   };
 
@@ -146,7 +176,7 @@ export function CopilotOverlayWidget() {
             <CopilotRequestForm
               selectedText={selectedText}
               prompt={session.prompt}
-              busy={session.busy}
+              busy={session.busy || session.applying}
               selectedAgent={session.selectedAgent}
               agentStatus={agentStatus}
               onSelectedTextChange={setSelectedText}
@@ -161,6 +191,7 @@ export function CopilotOverlayWidget() {
             {session.showResponsePanel ? (
               <CopilotResponsePanel
                 busy={session.busy}
+                applying={session.applying}
                 error={session.error}
                 chatResult={session.chatResult}
                 selectedAgent={session.selectedAgent}
