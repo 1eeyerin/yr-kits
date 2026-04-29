@@ -68,6 +68,20 @@ const getInstallCommand = (manager: PackageManager, spec: string) => {
   }
 };
 
+const getRunScriptCommand = (manager: PackageManager, scriptName: string) => {
+  switch (manager) {
+    case "yarn":
+      return `yarn ${scriptName}`;
+    case "bun":
+      return `bun run ${scriptName}`;
+    case "pnpm":
+      return `pnpm run ${scriptName}`;
+    case "npm":
+    default:
+      return `npm run ${scriptName}`;
+  }
+};
+
 const ensurePackageInstalled = (cwd: string, packageJson: PackageJsonShape) => {
   const installed =
     packageJson.dependencies?.[PACKAGE_NAME] ||
@@ -143,12 +157,14 @@ export const runInitCommand = async (options: InitCommandOptions = {}) => {
   ) as PackageJsonShape;
 
   ensureBridgeScript(cwd, packageJsonPath, refreshedPackageJson);
+  const manager = detectPackageManager(cwd, refreshedPackageJson);
+  const runBridgeCommand = getRunScriptCommand(manager, SCRIPT_NAME);
 
   process.stdout.write(
     [
       "",
       "다음 단계",
-      `1. pnpm run ${SCRIPT_NAME}`,
+      `1. ${runBridgeCommand}`,
       "2. React 트리에 DevCopilotProvider와 DevCopilotOverlay를 연결합니다.",
       "3. 자세한 문서는 https://yr-kits.vercel.app/docs/dev-copilot/overview 를 확인합니다.",
     ].join("\n") + "\n",
