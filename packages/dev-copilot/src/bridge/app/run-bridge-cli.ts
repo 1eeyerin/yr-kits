@@ -1,6 +1,6 @@
-import { createDevCopilotBridgeConfig } from "../lib/config";
-import { createDevCopilotBridgeServer } from "../server/http-server";
-import type { CopilotAgent } from "../types";
+import type { CopilotAgent } from "../../shared/contracts/copilot";
+import { createDevCopilotBridgeConfig } from "../shared/config/bridge-config";
+import { createDevCopilotBridgeServer } from "./create-bridge-server";
 
 const resolveAgent = (value: string | undefined): CopilotAgent => {
   if (value === "claude") {
@@ -12,8 +12,7 @@ const resolveAgent = (value: string | undefined): CopilotAgent => {
 
 export const runDevCopilotBridgeCli = async (argv: string[]) => {
   const portFlagIndex = argv.findIndex((value) => value === "-p");
-  const portFlagValue =
-    portFlagIndex >= 0 ? argv[portFlagIndex + 1] : undefined;
+  const portFlagValue = portFlagIndex >= 0 ? argv[portFlagIndex + 1] : undefined;
   const positionalPort = argv.find((value) => /^\d+$/.test(value));
   const resolvedPort = portFlagValue
     ? Number(portFlagValue)
@@ -37,7 +36,11 @@ export const runDevCopilotBridgeCli = async (argv: string[]) => {
 
   const server = createDevCopilotBridgeServer(config);
 
-  await new Promise<void>((resolve) => {
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", (error) => {
+      reject(error);
+    });
+
     server.listen(config.port, config.host, () => {
       process.stdout.write(
         `[dev-copilot-bridge] listening on http://${config.host}:${config.port}\n`,

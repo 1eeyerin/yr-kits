@@ -1,10 +1,8 @@
 import path from "node:path";
 
-import type { DevCopilotBridgeConfig } from "./config";
-
 export const resolveAndValidatePath = (
   filePath: string,
-  allowedPaths: DevCopilotBridgeConfig["allowedPaths"],
+  allowedPaths: string[],
   rootDir?: string,
 ) => {
   if (!filePath) {
@@ -21,10 +19,7 @@ export const resolveAndValidatePath = (
     }
   }
 
-  if (
-    path.isAbsolute(normalizedInput) ||
-    normalizedInput.includes("..")
-  ) {
+  if (path.isAbsolute(normalizedInput) || normalizedInput.includes("..")) {
     throw new Error("허용되지 않은 파일 경로입니다.");
   }
 

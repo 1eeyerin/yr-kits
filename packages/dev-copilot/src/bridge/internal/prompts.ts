@@ -1,4 +1,4 @@
-import type { CopilotMode } from "../types";
+import type { CopilotMode } from "../../shared/contracts/copilot";
 
 export interface AgentPromptRequest {
   selectedText: string;

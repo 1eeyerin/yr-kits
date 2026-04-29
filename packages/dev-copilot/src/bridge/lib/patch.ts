@@ -19,11 +19,42 @@ const getChangedFiles = (patchPreview: string) => {
   return [...changedFiles];
 };
 
+const getGitApplyDirectoryArgs = async (cwd: string) => {
+  try {
+    const { stdout } = await execFileAsync("git", ["rev-parse", "--show-prefix"], {
+      cwd,
+    });
+    const prefix = stdout.trim().replace(/\/$/, "");
+
+    return prefix ? ["--directory", prefix] : [];
+  } catch {
+    return [];
+  }
+};
+
 interface TextReplacement {
   path: string;
   oldText: string;
   newText: string;
 }
+
+const withOriginalLineIndent = (content: string, oldText: string, newText: string) => {
+  if (!newText.includes("\n") || oldText.includes("\n")) {
+    return newText;
+  }
+
+  const matchIndex = content.indexOf(oldText);
+
+  if (matchIndex < 0) {
+    return newText;
+  }
+
+  const lineStartIndex = content.lastIndexOf("\n", matchIndex) + 1;
+  const linePrefix = content.slice(lineStartIndex, matchIndex);
+  const indent = linePrefix.match(/^[ \t]*/)?.[0] ?? "";
+
+  return indent ? newText.replaceAll("\n", `\n${indent}`) : newText;
+};
 
 export const normalizeUnifiedPatch = (patchPreview: string) => {
   const withoutFence = patchPreview
@@ -61,7 +92,8 @@ export const checkUnifiedPatch = async (patchPreview: string, cwd: string) => {
   await fs.writeFile(tempFilePath, patchPreview, "utf-8");
 
   try {
-    await execFileAsync("git", ["apply", "--check", tempFilePath], { cwd });
+    const directoryArgs = await getGitApplyDirectoryArgs(cwd);
+    await execFileAsync("git", ["apply", "--check", ...directoryArgs, tempFilePath], { cwd });
   } catch (error) {
     const detail =
       error instanceof Error && "stderr" in error
@@ -151,7 +183,10 @@ export const createPatchFromTextReplacements = async (
         throw new Error(`원문을 파일에서 찾을 수 없습니다: ${filePath}`);
       }
 
-      newContent = newContent.replace(replacement.oldText, replacement.newText);
+      newContent = newContent.replace(
+        replacement.oldText,
+        withOriginalLineIndent(newContent, replacement.oldText, replacement.newText),
+      );
     }
 
     if (newContent === oldContent) {
@@ -183,8 +218,19 @@ export const applyUnifiedPatch = async (
   await fs.writeFile(tempFilePath, patchPreview, "utf-8");
 
   try {
-    await execFileAsync("git", ["apply", "--check", tempFilePath], { cwd });
-    await execFileAsync("git", ["apply", tempFilePath], { cwd });
+    const directoryArgs = await getGitApplyDirectoryArgs(cwd);
+    const { stdout: statOutput } = await execFileAsync(
+      "git",
+      ["apply", "--numstat", ...directoryArgs, tempFilePath],
+      { cwd },
+    );
+
+    if (!statOutput.trim()) {
+      throw new Error("patch가 실제 파일 변경을 만들지 않았습니다.");
+    }
+
+    await execFileAsync("git", ["apply", "--check", ...directoryArgs, tempFilePath], { cwd });
+    await execFileAsync("git", ["apply", ...directoryArgs, tempFilePath], { cwd });
 
     const changedFiles = getChangedFiles(patchPreview);
 

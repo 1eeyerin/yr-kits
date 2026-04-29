@@ -1,4 +1,4 @@
-import type { CopilotAgent } from "../types";
+import type { CopilotAgent } from "../../../shared/contracts/copilot";
 
 export interface DevCopilotBridgeConfig {
   rootDir: string;
