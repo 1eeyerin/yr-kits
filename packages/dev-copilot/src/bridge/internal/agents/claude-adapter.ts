@@ -1,118 +1,50 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-
+import { agentEditResponseSchemaJson } from "./edit-response-schema";
+import {
+  parseAnswerResponse,
+  parseClaudeEditResponse,
+  parseClaudeJsonOutput,
+} from "./agent-response";
+import {
+  extractCliErrorDetails,
+  isCliCommandMissing,
+  isCliTimeout,
+} from "./cli-error";
+import { runCli } from "./run-cli";
 import { buildAgentPrompt } from "../prompts";
+import {
+  createAuthenticatedStatus,
+  createLoginRequiredStatus,
+  createUnauthenticatedStatus,
+  createUnavailableStatus,
+} from "../../entities/agent/status";
 import type {
   AgentAdapter,
   AgentBridgeRequest,
   AgentBridgeResponse,
   AgentStatus,
-} from "./types";
+} from "../../entities/agent/types";
 
-const execFileAsync = promisify(execFile);
-
-type ClaudePrintJsonResponse = {
-  result?: unknown;
-  message?: unknown;
-  output?: unknown;
-  content?: unknown;
-};
-
+const CLAUDE_MODEL = process.env.DEV_COPILOT_CLAUDE_MODEL ?? "haiku";
+const CLAUDE_TIMEOUT_MS = Number(process.env.DEV_COPILOT_CLAUDE_TIMEOUT_MS ?? 120_000);
 const AUTH_ERROR_PATTERN =
   /401|authentication|invalid authentication credentials|please run \/login|claude\s*\/login|로그인/i;
 
-const extractErrorDetails = (error: unknown) => {
-  const unknownRecord = error && typeof error === "object" ? (error as Record<string, unknown>) : null;
-  const message = error instanceof Error ? error.message : String(error);
-  const stderr = typeof unknownRecord?.stderr === "string" ? unknownRecord.stderr : "";
-  const stdout = typeof unknownRecord?.stdout === "string" ? unknownRecord.stdout : "";
-  const merged = [message, stderr, stdout]
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .join("\n");
-
-  return {
-    message,
-    stderr,
-    stdout,
-    merged,
-  };
-};
-
 const toClaudeErrorMessage = (error: unknown) => {
-  const { message, merged } = extractErrorDetails(error);
+  const details = extractCliErrorDetails(error);
 
-  if (AUTH_ERROR_PATTERN.test(merged)) {
+  if (isCliTimeout(details)) {
+    return "Claude Code 응답 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.";
+  }
+
+  if (AUTH_ERROR_PATTERN.test(details.merged)) {
     return "Claude Code 로그인이 필요합니다. 터미널에서 `claude /login`을 실행해 주세요.";
   }
 
-  if (/ENOENT/.test(merged)) {
+  if (isCliCommandMissing(details)) {
     return "Claude CLI를 찾을 수 없습니다. Claude Code CLI 설치 상태를 확인해 주세요.";
   }
 
-  return message;
-};
-
-const findFirstString = (value: unknown): string | null => {
-  if (typeof value === "string") {
-    const text = value.trim();
-    return text ? text : null;
-  }
-
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const found = findFirstString(item);
-      if (found) {
-        return found;
-      }
-    }
-    return null;
-  }
-
-  if (value && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    const preferredKeys = ["result", "message", "output", "text", "content"];
-
-    for (const key of preferredKeys) {
-      if (key in record) {
-        const found = findFirstString(record[key]);
-        if (found) {
-          return found;
-        }
-      }
-    }
-
-    for (const nestedValue of Object.values(record)) {
-      const found = findFirstString(nestedValue);
-      if (found) {
-        return found;
-      }
-    }
-  }
-
-  return null;
-};
-
-const parseClaudeJsonOutput = (raw: string) => {
-  const parsed = JSON.parse(raw) as ClaudePrintJsonResponse;
-  const text = findFirstString(parsed) ?? "";
-
-  return {
-    parsed,
-    text,
-  };
-};
-
-const parseClaudeEditResponse = (raw: string): AgentBridgeResponse => {
-  const { text } = parseClaudeJsonOutput(raw);
-  const parsed = JSON.parse(text) as AgentBridgeResponse;
-
-  return {
-    message: parsed.message,
-    patchPreview: parsed.patchPreview,
-    changes: parsed.changes,
-    warnings: parsed.warnings ?? [],
-  };
+  return details.message;
 };
 
 export const claudeAdapter: AgentAdapter = {
@@ -123,33 +55,27 @@ export const claudeAdapter: AgentAdapter = {
       "-p",
       "--output-format",
       "json",
-      ...(request.mode === "edit"
-        ? [
-            "--json-schema",
-            '{"type":"object","properties":{"message":{"type":"string"},"patchPreview":{"type":"string"},"warnings":{"type":"array","items":{"type":"string"}},"changes":{"type":"array","items":{"type":"object","properties":{"path":{"type":"string"},"oldText":{"type":"string"},"newText":{"type":"string"}},"required":["path","oldText","newText"],"additionalProperties":false}}},"required":["message"],"additionalProperties":false}',
-          ]
-        : []),
+      "--model",
+      CLAUDE_MODEL,
+      "--tools",
+      "",
+      "--strict-mcp-config",
+      "--mcp-config",
+      '{"mcpServers":{}}',
+      ...(request.mode === "edit" ? ["--json-schema", agentEditResponseSchemaJson] : []),
+      "--",
       prompt,
     ];
 
     try {
-      const { stdout } = await execFileAsync("claude", args, {
+      const { stdout } = await runCli("claude", args, {
         cwd: request.cwd,
-        maxBuffer: 1024 * 1024 * 5,
-        timeout: Number(process.env.DEV_COPILOT_AGENT_TIMEOUT_MS ?? 120_000),
-        env: {
-          ...process.env,
-          NO_COLOR: "1",
-        },
+        timeoutMs: Number(process.env.DEV_COPILOT_AGENT_TIMEOUT_MS ?? CLAUDE_TIMEOUT_MS),
       });
 
       if (request.mode === "answer") {
         const { text } = parseClaudeJsonOutput(stdout);
-
-        return {
-          message: text,
-          warnings: [],
-        };
+        return parseAnswerResponse(text);
       }
 
       return parseClaudeEditResponse(stdout);
@@ -159,41 +85,46 @@ export const claudeAdapter: AgentAdapter = {
   },
   async getStatus(cwd: string): Promise<AgentStatus> {
     try {
-      await execFileAsync("claude", ["-p", "--output-format", "json", "OK"], {
+      await runCli("claude", ["--version"], {
         cwd,
-        timeout: 15_000,
-        maxBuffer: 1024 * 512,
+        timeoutMs: 5_000,
+        maxBuffer: 1024 * 32,
       });
 
-      return {
-        available: true,
-        authenticated: true,
+      return createAuthenticatedStatus({
         agent: "claude",
         message: "Claude Code CLI에 로그인되어 있습니다.",
-      };
+        model: CLAUDE_MODEL,
+      });
     } catch (error) {
-      const { merged, message } = extractErrorDetails(error);
-      const unavailable = /ENOENT/.test(merged);
-      const authError = AUTH_ERROR_PATTERN.test(merged);
+      const details = extractCliErrorDetails(error);
 
-      return {
-        available: !unavailable,
-        authenticated: false,
+      if (isCliCommandMissing(details)) {
+        return createUnavailableStatus({
+          agent: "claude",
+          message: "Claude CLI를 찾을 수 없습니다.",
+        });
+      }
+
+      if (AUTH_ERROR_PATTERN.test(details.merged)) {
+        return createLoginRequiredStatus({
+          agent: "claude",
+          message: "Claude Code 로그인이 필요합니다.",
+          loginCommand: "claude /login",
+        });
+      }
+
+      return createUnauthenticatedStatus({
         agent: "claude",
-        message: unavailable
-          ? "Claude CLI를 찾을 수 없습니다."
-          : authError
-            ? "Claude Code 로그인이 필요합니다."
-            : "Claude Code 상태 확인에 실패했습니다. 터미널에서 `claude /login` 실행 후 다시 시도해 주세요.",
-        loginCommand: unavailable ? undefined : "claude /login",
-      };
+        message: isCliTimeout(details)
+          ? "Claude Code 상태 확인 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요."
+          : `Claude Code 상태 확인에 실패했습니다: ${details.message}`,
+        loginCommand: isCliTimeout(details) ? undefined : "claude /login",
+      });
     }
   },
 };
 
 export const __internal = {
-  findFirstString,
-  parseClaudeJsonOutput,
-  parseClaudeEditResponse,
   toClaudeErrorMessage,
 };
