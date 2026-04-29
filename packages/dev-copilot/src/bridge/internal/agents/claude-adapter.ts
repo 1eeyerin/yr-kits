@@ -1,4 +1,5 @@
 import { agentEditResponseSchemaJson } from "./edit-response-schema";
+import { DEFAULT_AGENT_TIMEOUT_MS, QUICK_STATUS_CHECK_TIMEOUT_MS } from "./constants";
 import {
   parseAnswerResponse,
   parseClaudeEditResponse,
@@ -25,7 +26,7 @@ import type {
 } from "../../entities/agent/types";
 
 const CLAUDE_MODEL = process.env.DEV_COPILOT_CLAUDE_MODEL ?? "haiku";
-const CLAUDE_TIMEOUT_MS = Number(process.env.DEV_COPILOT_CLAUDE_TIMEOUT_MS ?? 120_000);
+const CLAUDE_TIMEOUT_MS = Number(process.env.DEV_COPILOT_CLAUDE_TIMEOUT_MS ?? DEFAULT_AGENT_TIMEOUT_MS);
 const AUTH_ERROR_PATTERN =
   /401|authentication|invalid authentication credentials|please run \/login|claude\s*\/login|로그인/i;
 
@@ -87,7 +88,7 @@ export const claudeAdapter: AgentAdapter = {
     try {
       await runCli("claude", ["--version"], {
         cwd,
-        timeoutMs: 5_000,
+        timeoutMs: QUICK_STATUS_CHECK_TIMEOUT_MS,
         maxBuffer: 1024 * 32,
       });
 

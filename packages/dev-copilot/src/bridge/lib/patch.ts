@@ -1,8 +1,9 @@
 import { execFile } from "node:child_process";
 import { promises as fs } from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+
+import { createTempPath } from "../shared/lib/temp-path";
 
 const execFileAsync = promisify(execFile);
 
@@ -84,10 +85,7 @@ export const validatePatchPaths = (
 };
 
 export const checkUnifiedPatch = async (patchPreview: string, cwd: string) => {
-  const tempFilePath = path.join(
-    os.tmpdir(),
-    `dev-copilot-check-${Date.now()}-${Math.random().toString(16).slice(2)}.patch`,
-  );
+  const tempFilePath = createTempPath("dev-copilot-check", ".patch");
 
   await fs.writeFile(tempFilePath, patchPreview, "utf-8");
 
@@ -113,10 +111,7 @@ const createGitPatch = async (
   oldContent: string,
   newContent: string,
 ) => {
-  const tempDir = path.join(
-    os.tmpdir(),
-    `dev-copilot-diff-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-  );
+  const tempDir = createTempPath("dev-copilot-diff");
   const oldFilePath = path.join(tempDir, "old", filePath);
   const newFilePath = path.join(tempDir, "new", filePath);
 
@@ -210,10 +205,7 @@ export const applyUnifiedPatch = async (
   cwd: string,
   actor: string,
 ) => {
-  const tempFilePath = path.join(
-    os.tmpdir(),
-    `dev-copilot-${Date.now()}-${Math.random().toString(16).slice(2)}.patch`,
-  );
+  const tempFilePath = createTempPath("dev-copilot", ".patch");
 
   await fs.writeFile(tempFilePath, patchPreview, "utf-8");
 

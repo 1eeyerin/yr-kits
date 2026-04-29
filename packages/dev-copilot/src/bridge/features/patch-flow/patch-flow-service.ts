@@ -26,7 +26,7 @@ const sanitizeAllowedPaths = (fileHints?: string[]) => {
   return sanitized.length ? Array.from(new Set(sanitized)) : null;
 };
 
-export const resolveAllowedPaths = (
+export const resolveAllowedPathsWithSrcFallback = (
   config: DevCopilotBridgeConfig,
   fileHints?: string[],
 ) => {

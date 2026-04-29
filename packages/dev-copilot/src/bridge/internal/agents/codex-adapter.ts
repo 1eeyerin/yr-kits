@@ -1,6 +1,4 @@
 import { promises as fs } from "node:fs";
-import os from "node:os";
-import path from "node:path";
 
 import { buildAgentPrompt } from "../prompts";
 import {
@@ -14,6 +12,12 @@ import {
 import { agentEditResponseSchema } from "./edit-response-schema";
 import { runCli } from "./run-cli";
 import {
+  DEFAULT_AGENT_MAX_BUFFER_BYTES,
+  DEFAULT_AGENT_TIMEOUT_MS,
+  MODEL_STATUS_CHECK_TIMEOUT_MS,
+  STATUS_CHECK_TIMEOUT_MS,
+} from "./constants";
+import {
   createAuthenticatedStatus,
   createLoginRequiredStatus,
   createUnauthenticatedStatus,
@@ -25,9 +29,10 @@ import type {
   AgentBridgeResponse,
   AgentStatus,
 } from "../../entities/agent/types";
+import { createTempPath } from "../../shared/lib/temp-path";
 
 const CODEX_MODEL = process.env.DEV_COPILOT_CODEX_MODEL ?? "gpt-5.3-codex";
-const CODEX_TIMEOUT_MS = Number(process.env.DEV_COPILOT_CODEX_TIMEOUT_MS ?? 120_000);
+const CODEX_TIMEOUT_MS = Number(process.env.DEV_COPILOT_CODEX_TIMEOUT_MS ?? DEFAULT_AGENT_TIMEOUT_MS);
 const fallbackDisableMcpArgs = [
   "-c",
   "mcp_servers.notion.enabled=false",
@@ -62,7 +67,7 @@ const getDisableAllMcpArgs = async () => {
     try {
       const { stdout } = await runCli("codex", ["mcp", "list", "--json"], {
         cwd: process.cwd(),
-        timeoutMs: 10_000,
+        timeoutMs: STATUS_CHECK_TIMEOUT_MS,
         maxBuffer: 1024 * 1024,
       });
 
@@ -123,10 +128,7 @@ const toCodexErrorMessage = (error: unknown) => {
 };
 
 const getCodexModelName = async (cwd: string) => {
-  const outputPath = path.join(
-    os.tmpdir(),
-    `dev-copilot-codex-status-${Date.now()}-${Math.random().toString(16).slice(2)}.txt`,
-  );
+  const outputPath = createTempPath("dev-copilot-codex-status", ".txt");
 
   try {
     const disableAllMcpArgs = await getDisableAllMcpArgs();
@@ -148,7 +150,7 @@ const getCodexModelName = async (cwd: string) => {
       ],
       {
         cwd,
-        timeoutMs: 30_000,
+        timeoutMs: MODEL_STATUS_CHECK_TIMEOUT_MS,
         maxBuffer: 1024 * 512,
       },
     );
@@ -167,14 +169,8 @@ export const codexAdapter: AgentAdapter = {
   agent: "codex",
   async run(request: AgentBridgeRequest): Promise<AgentBridgeResponse> {
     const disableAllMcpArgs = await getDisableAllMcpArgs();
-    const outputPath = path.join(
-      os.tmpdir(),
-      `dev-copilot-codex-${Date.now()}-${Math.random().toString(16).slice(2)}.json`,
-    );
-    const schemaPath = path.join(
-      os.tmpdir(),
-      `dev-copilot-codex-schema-${Date.now()}-${Math.random().toString(16).slice(2)}.json`,
-    );
+    const outputPath = createTempPath("dev-copilot-codex", ".json");
+    const schemaPath = createTempPath("dev-copilot-codex-schema", ".json");
 
     await fs.writeFile(
       schemaPath,
@@ -202,7 +198,7 @@ export const codexAdapter: AgentAdapter = {
     try {
       const { stdout } = await runCli("codex", args, {
         cwd: request.cwd,
-        maxBuffer: 1024 * 1024 * 5,
+        maxBuffer: DEFAULT_AGENT_MAX_BUFFER_BYTES,
         timeoutMs: Number(process.env.DEV_COPILOT_AGENT_TIMEOUT_MS ?? CODEX_TIMEOUT_MS),
       });
 
@@ -227,7 +223,7 @@ export const codexAdapter: AgentAdapter = {
     try {
       const { stdout, stderr } = await runCli("codex", ["login", "status"], {
         cwd,
-        timeoutMs: 10_000,
+        timeoutMs: STATUS_CHECK_TIMEOUT_MS,
         maxBuffer: 1024 * 128,
       });
       const output = `${stdout}\n${stderr}`.trim();

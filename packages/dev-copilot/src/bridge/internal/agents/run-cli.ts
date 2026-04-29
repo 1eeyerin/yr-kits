@@ -1,5 +1,7 @@
 import { spawn } from "node:child_process";
 
+import { DEFAULT_AGENT_MAX_BUFFER_BYTES } from "./constants";
+
 interface RunCliOptions {
   cwd: string;
   timeoutMs: number;
@@ -14,7 +16,7 @@ export interface RunCliResult {
 
 export const runCli = (command: string, args: string[], options: RunCliOptions) => {
   return new Promise<RunCliResult>((resolve, reject) => {
-    const maxBuffer = options.maxBuffer ?? 1024 * 1024 * 5;
+    const maxBuffer = options.maxBuffer ?? DEFAULT_AGENT_MAX_BUFFER_BYTES;
     const child = spawn(command, args, {
       cwd: options.cwd,
       stdio: ["ignore", "pipe", "pipe"],
@@ -31,7 +33,15 @@ export const runCli = (command: string, args: string[], options: RunCliOptions) 
     let settled = false;
 
     const timeout = setTimeout(() => {
+      if (settled) return;
+      settled = true;
       child.kill("SIGTERM");
+      const error = new Error(`${command} 실행 시간이 초과되었습니다.`);
+      Object.assign(error, {
+        signal: "SIGTERM",
+        killed: true,
+      });
+      reject(error);
     }, options.timeoutMs);
 
     const fail = (error: Error) => {

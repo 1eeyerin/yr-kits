@@ -9,7 +9,7 @@ import { resolveAgentAdapter } from "../agent-runner/resolve-agent-adapter";
 import { buildCopilotProjectContext } from "../project-context/build-project-context";
 import {
   buildPatchPreview,
-  resolveAllowedPaths,
+  resolveAllowedPathsWithSrcFallback,
   saveProposedPatch,
   validatePatchPreview,
 } from "../patch-flow/patch-flow-service";
@@ -27,7 +27,7 @@ export const handleChatRoute = async (
   config: DevCopilotBridgeConfig,
 ) => {
   const payload = await readJsonBody<CopilotChatRequest>(request);
-  const effectiveAllowedPaths = resolveAllowedPaths(config, payload.context?.fileHints);
+  const effectiveAllowedPaths = resolveAllowedPathsWithSrcFallback(config, payload.context?.fileHints);
   const agent = isCopilotAgent(payload.context?.agent) ? payload.context.agent : config.agent;
   const adapter = resolveAgentAdapter(agent);
 
