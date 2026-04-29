@@ -10,6 +10,7 @@ import {
   isCliCommandMissing,
   isCliTimeout,
 } from "./cli-error";
+import { resolveClaudeCommand } from "./claude-command";
 import { runCli } from "./run-cli";
 import { buildAgentPrompt } from "../prompts";
 import {
@@ -51,6 +52,7 @@ const toClaudeErrorMessage = (error: unknown) => {
 export const claudeAdapter: AgentAdapter = {
   agent: "claude",
   async run(request: AgentBridgeRequest): Promise<AgentBridgeResponse> {
+    const claudeCommand = await resolveClaudeCommand();
     const prompt = buildAgentPrompt(request);
     const args = [
       "-p",
@@ -69,7 +71,7 @@ export const claudeAdapter: AgentAdapter = {
     ];
 
     try {
-      const { stdout } = await runCli("claude", args, {
+      const { stdout } = await runCli(claudeCommand, args, {
         cwd: request.cwd,
         timeoutMs: Number(process.env.DEV_COPILOT_AGENT_TIMEOUT_MS ?? CLAUDE_TIMEOUT_MS),
       });
@@ -86,7 +88,8 @@ export const claudeAdapter: AgentAdapter = {
   },
   async getStatus(cwd: string): Promise<AgentStatus> {
     try {
-      await runCli("claude", ["--version"], {
+      const claudeCommand = await resolveClaudeCommand();
+      await runCli(claudeCommand, ["--version"], {
         cwd,
         timeoutMs: QUICK_STATUS_CHECK_TIMEOUT_MS,
         maxBuffer: 1024 * 32,

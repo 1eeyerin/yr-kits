@@ -11,6 +11,7 @@ import {
 } from "./cli-error";
 import { agentEditResponseSchema } from "./edit-response-schema";
 import { runCli } from "./run-cli";
+import { resolveCodexCommand } from "./codex-command";
 import {
   DEFAULT_AGENT_MAX_BUFFER_BYTES,
   DEFAULT_AGENT_TIMEOUT_MS,
@@ -59,13 +60,15 @@ const getDisableAllMcpArgs = async () => {
     return [] as string[];
   }
 
+  const codexCommand = await resolveCodexCommand();
+
   if (disableAllMcpArgsPromise) {
     return disableAllMcpArgsPromise;
   }
 
   disableAllMcpArgsPromise = (async () => {
     try {
-      const { stdout } = await runCli("codex", ["mcp", "list", "--json"], {
+      const { stdout } = await runCli(codexCommand, ["mcp", "list", "--json"], {
         cwd: process.cwd(),
         timeoutMs: STATUS_CHECK_TIMEOUT_MS,
         maxBuffer: 1024 * 1024,
@@ -116,6 +119,13 @@ const toCodexErrorMessage = (error: unknown) => {
     ].join(" ");
   }
 
+  if (/Error loading config\.toml: invalid transport/i.test(details.merged)) {
+    return [
+      "Codex 설정 파일의 MCP transport를 현재 Codex CLI가 해석하지 못했습니다.",
+      "Codex CLI를 업데이트하거나 DEV_COPILOT_CODEX_BIN으로 사용할 Codex 실행 파일을 지정해 주세요.",
+    ].join(" ");
+  }
+
   if (/not logged in|login required|authentication|unauthorized/i.test(details.merged)) {
     return "Codex CLI 로그인이 필요합니다. 터미널에서 `codex login`을 실행해 주세요.";
   }
@@ -131,12 +141,14 @@ const getCodexModelName = async (cwd: string) => {
   const outputPath = createTempPath("dev-copilot-codex-status", ".txt");
 
   try {
+    const codexCommand = await resolveCodexCommand();
     const disableAllMcpArgs = await getDisableAllMcpArgs();
     const { stdout, stderr } = await runCli(
-      "codex",
+      codexCommand,
       [
         ...disableAllMcpArgs,
         "exec",
+        "--ephemeral",
         "--model",
         CODEX_MODEL,
         "--cd",
@@ -168,6 +180,7 @@ const getCodexModelName = async (cwd: string) => {
 export const codexAdapter: AgentAdapter = {
   agent: "codex",
   async run(request: AgentBridgeRequest): Promise<AgentBridgeResponse> {
+    const codexCommand = await resolveCodexCommand();
     const disableAllMcpArgs = await getDisableAllMcpArgs();
     const outputPath = createTempPath("dev-copilot-codex", ".json");
     const schemaPath = createTempPath("dev-copilot-codex-schema", ".json");
@@ -182,6 +195,7 @@ export const codexAdapter: AgentAdapter = {
     const args = [
       ...disableAllMcpArgs,
       "exec",
+      "--ephemeral",
       "--model",
       CODEX_MODEL,
       "--cd",
@@ -196,7 +210,7 @@ export const codexAdapter: AgentAdapter = {
     ];
 
     try {
-      const { stdout } = await runCli("codex", args, {
+      const { stdout } = await runCli(codexCommand, args, {
         cwd: request.cwd,
         maxBuffer: DEFAULT_AGENT_MAX_BUFFER_BYTES,
         timeoutMs: Number(process.env.DEV_COPILOT_AGENT_TIMEOUT_MS ?? CODEX_TIMEOUT_MS),
@@ -221,7 +235,8 @@ export const codexAdapter: AgentAdapter = {
   },
   async getStatus(cwd: string): Promise<AgentStatus> {
     try {
-      const { stdout, stderr } = await runCli("codex", ["login", "status"], {
+      const codexCommand = await resolveCodexCommand();
+      const { stdout, stderr } = await runCli(codexCommand, ["login", "status"], {
         cwd,
         timeoutMs: STATUS_CHECK_TIMEOUT_MS,
         maxBuffer: 1024 * 128,
