@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 const FLOATING_BUTTON_SIZE = 48;
 const DRAG_CLICK_THRESHOLD = 4;
+const DEFAULT_FLOATING_OFFSET = 24;
+const FLOATING_Z_INDEX = 2147483000;
 
 interface DragState {
   pointerId: number;
@@ -11,6 +13,10 @@ interface DragState {
   originY: number;
   moved: boolean;
 }
+
+const clampPosition = (value: number, max: number) => {
+  return Math.min(Math.max(value, 0), Math.max(0, max - FLOATING_BUTTON_SIZE));
+};
 
 export const useDraggableFab = () => {
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
@@ -25,8 +31,8 @@ export const useDraggableFab = () => {
         }
 
         return {
-          x: Math.min(Math.max(prev.x, 0), Math.max(0, window.innerWidth - FLOATING_BUTTON_SIZE)),
-          y: Math.min(Math.max(prev.y, 0), Math.max(0, window.innerHeight - FLOATING_BUTTON_SIZE)),
+          x: clampPosition(prev.x, window.innerWidth),
+          y: clampPosition(prev.y, window.innerHeight),
         };
       });
     };
@@ -35,7 +41,7 @@ export const useDraggableFab = () => {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const onPointerDown = (
+  const onPointerDown = useCallback((
     event: React.PointerEvent<HTMLButtonElement>,
     origin?: { x: number; y: number },
   ) => {
@@ -52,9 +58,9 @@ export const useDraggableFab = () => {
       originY: origin?.y ?? 0,
       moved: false,
     };
-  };
+  }, []);
 
-  const onPointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const onPointerMove = useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
     const dragState = dragStateRef.current;
     if (!dragState || dragState.pointerId !== event.pointerId) {
       return;
@@ -71,12 +77,12 @@ export const useDraggableFab = () => {
     dragState.moved = true;
 
     setPosition({
-      x: Math.min(Math.max(dragState.originX + deltaX, 0), Math.max(0, window.innerWidth - FLOATING_BUTTON_SIZE)),
-      y: Math.min(Math.max(dragState.originY + deltaY, 0), Math.max(0, window.innerHeight - FLOATING_BUTTON_SIZE)),
+      x: clampPosition(dragState.originX + deltaX, window.innerWidth),
+      y: clampPosition(dragState.originY + deltaY, window.innerHeight),
     });
-  };
+  }, []);
 
-  const onPointerEnd = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const onPointerEnd = useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
     if (dragStateRef.current?.pointerId !== event.pointerId) {
       return;
     }
@@ -84,36 +90,40 @@ export const useDraggableFab = () => {
     suppressMainToggleClickRef.current = dragStateRef.current.moved;
     dragStateRef.current = null;
     event.currentTarget.releasePointerCapture(event.pointerId);
-  };
+  }, []);
 
-  const consumeToggleSuppression = () => {
+  const consumeToggleSuppression = useCallback(() => {
     if (suppressMainToggleClickRef.current) {
       suppressMainToggleClickRef.current = false;
       return true;
     }
 
     return false;
-  };
+  }, []);
 
-  const resetDragState = () => {
+  const resetDragState = useCallback(() => {
     dragStateRef.current = null;
     suppressMainToggleClickRef.current = false;
     setPosition(null);
-  };
+  }, []);
 
-  const floatingWrapperStyle: CSSProperties = position
-    ? {
+  const floatingWrapperStyle: CSSProperties = useMemo(() => {
+    if (position) {
+      return {
         position: "fixed",
-        zIndex: 2147483000,
+        zIndex: FLOATING_Z_INDEX,
         left: `${position.x}px`,
         top: `${position.y}px`,
-      }
-    : {
-        position: "fixed",
-        right: 24,
-        bottom: 24,
-        zIndex: 2147483000,
       };
+    }
+
+    return {
+      position: "fixed",
+      right: DEFAULT_FLOATING_OFFSET,
+      bottom: DEFAULT_FLOATING_OFFSET,
+      zIndex: FLOATING_Z_INDEX,
+    };
+  }, [position]);
 
   return {
     position,

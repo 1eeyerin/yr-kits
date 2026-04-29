@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import type { CopilotAgent, CopilotChatResponse } from "../../../shared/contracts/copilot";
 
@@ -12,22 +12,62 @@ export const useCopilotSession = () => {
   const [selectedAgent, setSelectedAgent] = useState<CopilotAgent>("codex");
   const [showResponsePanel, setShowResponsePanel] = useState(false);
 
+  const closePanel = useCallback(() => {
+    setOpen(false);
+    setShowResponsePanel(false);
+  }, []);
+
+  const togglePanel = useCallback(() => {
+    setOpen((prev) => !prev);
+  }, []);
+
+  const toggleResponsePanel = useCallback(() => {
+    setShowResponsePanel((prev) => !prev);
+  }, []);
+
+  const startRequest = useCallback(() => {
+    setBusy(true);
+    setError(null);
+    setShowResponsePanel(true);
+  }, []);
+
+  const finishRequest = useCallback((result: CopilotChatResponse) => {
+    setChatResult(result);
+    setBusy(false);
+  }, []);
+
+  const failRequest = useCallback((message: string) => {
+    setError(message);
+    setBusy(false);
+  }, []);
+
+  const showToast = useCallback((message: string) => {
+    setToastMessage(message);
+  }, []);
+
+  const clearToast = useCallback(() => {
+    setToastMessage(null);
+  }, []);
+
   return {
     open,
-    setOpen,
     prompt,
     setPrompt,
     busy,
-    setBusy,
     error,
-    setError,
     chatResult,
-    setChatResult,
     toastMessage,
-    setToastMessage,
     selectedAgent,
     setSelectedAgent,
     showResponsePanel,
-    setShowResponsePanel,
+    setError,
+    closePanel,
+    togglePanel,
+    toggleResponsePanel,
+    startRequest,
+    finishRequest,
+    failRequest,
+    showToast,
+    clearToast,
   };
 };
