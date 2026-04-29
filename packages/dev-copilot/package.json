@@ -44,7 +44,7 @@
     "build": "tsdown",
     "dev": "tsdown --watch",
     "prepublishOnly": "pnpm run build",
-    "test": "echo \"No tests yet\"",
+    "test": "tsdown src/**/*.test.ts --format esm --out-dir /tmp/dev-copilot-tests --clean && node --test /tmp/dev-copilot-tests/*.test.mjs",
     "release:patch": "npm version patch --no-git-tag-version && pnpm publish --access public --no-git-checks",
     "release:minor": "npm version minor --no-git-tag-version && pnpm publish --access public --no-git-checks",
     "release:major": "npm version major --no-git-tag-version && pnpm publish --access public --no-git-checks",
@@ -72,7 +72,9 @@
     "react": "^18.2.0 || ^19.0.0",
     "react-dom": "^18.2.0 || ^19.0.0"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@openai/codex": "^0.130.0"
+  },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "@types/react": "^19.2.2",

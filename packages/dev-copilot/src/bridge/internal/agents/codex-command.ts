@@ -1,5 +1,6 @@
 import { access, rm } from "node:fs/promises";
-import { delimiter, join } from "node:path";
+import { delimiter, dirname, join, parse } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { runCli } from "./run-cli";
 import { STATUS_CHECK_TIMEOUT_MS } from "./constants";
@@ -7,7 +8,7 @@ import { createTempPath } from "../../shared/lib/temp-path";
 
 interface CodexCommandCandidate {
   command: string;
-  source: "env" | "path";
+  source: "bundled" | "env" | "path";
 }
 
 interface ResolvedCodexCommand extends CodexCommandCandidate {
@@ -51,6 +52,47 @@ const getPathExecutableNames = () => {
   return ["codex", ...pathExts.map((ext) => `codex${ext.toLowerCase()}`)];
 };
 
+const getBundledSearchRoots = () => {
+  const overrideRoot = process.env.DEV_COPILOT_PACKAGE_ROOT_FOR_TESTS?.trim();
+
+  if (overrideRoot) {
+    return [overrideRoot];
+  }
+
+  const roots: string[] = [];
+  let current = dirname(fileURLToPath(import.meta.url));
+  const { root } = parse(current);
+
+  while (true) {
+    roots.push(current);
+
+    if (current === root) {
+      break;
+    }
+
+    current = dirname(current);
+  }
+
+  return roots;
+};
+
+const collectBundledCodexCandidates = async () => {
+  const executableNames = getPathExecutableNames();
+  const candidates: CodexCommandCandidate[] = [];
+
+  for (const root of getBundledSearchRoots()) {
+    for (const name of executableNames) {
+      const command = join(root, "node_modules", ".bin", name);
+
+      if (await canAccess(command)) {
+        candidates.push({ command, source: "bundled" });
+      }
+    }
+  }
+
+  return candidates;
+};
+
 const collectCodexCandidates = async () => {
   const candidates: CodexCommandCandidate[] = [];
   const envCommand = process.env.DEV_COPILOT_CODEX_BIN?.trim();
@@ -58,6 +100,8 @@ const collectCodexCandidates = async () => {
   if (envCommand) {
     candidates.push({ command: envCommand, source: "env" });
   }
+
+  candidates.push(...await collectBundledCodexCandidates());
 
   const executableNames = getPathExecutableNames();
   const pathCandidates = (process.env.PATH ?? "")
@@ -145,6 +189,18 @@ const resolveCandidate = async (candidate: CodexCommandCandidate) => {
   } satisfies ResolvedCodexCommand;
 };
 
+const compareCodexVersionDesc = (left: ResolvedCodexCommand, right: ResolvedCodexCommand) => {
+  for (let index = 0; index < 3; index += 1) {
+    const diff = right.versionParts[index] - left.versionParts[index];
+
+    if (diff !== 0) {
+      return diff;
+    }
+  }
+
+  return 0;
+};
+
 export const resolveCodexCommand = async () => {
   if (codexCommandPromise) {
     return codexCommandPromise;
@@ -168,19 +224,38 @@ export const resolveCodexCommand = async () => {
     }
 
     const envCandidate = available.find((candidate) => candidate.source === "env");
+    const bundledCandidates = available
+      .filter((candidate) => candidate.source === "bundled")
+      .sort(compareCodexVersionDesc);
 
-    if (envCandidate) {
+    const pathCandidates = available
+      .filter((candidate) => candidate.source === "path")
+      .sort(compareCodexVersionDesc);
+
+    if (envCandidate && (await canRunCodexExec(envCandidate.command))) {
       return envCandidate.command;
     }
 
-    for (const candidate of available) {
+    for (const candidate of bundledCandidates) {
       if (await canRunCodexExec(candidate.command)) {
         return candidate.command;
       }
     }
 
-    return available[0].command;
+    for (const candidate of pathCandidates) {
+      if (await canRunCodexExec(candidate.command)) {
+        return candidate.command;
+      }
+    }
+
+    return envCandidate?.command ?? bundledCandidates[0]?.command ?? pathCandidates[0]?.command ?? available[0].command;
   })();
 
   return codexCommandPromise;
+};
+
+export const __internal = {
+  resetCodexCommandCacheForTests: () => {
+    codexCommandPromise = null;
+  },
 };
