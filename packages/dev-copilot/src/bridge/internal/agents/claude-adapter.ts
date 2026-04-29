@@ -18,14 +18,35 @@ type ClaudePrintJsonResponse = {
   content?: unknown;
 };
 
-const toClaudeErrorMessage = (error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error);
+const AUTH_ERROR_PATTERN =
+  /401|authentication|invalid authentication credentials|please run \/login|claude\s*\/login|로그인/i;
 
-  if (/401|authentication|invalid authentication credentials|please run \/login/i.test(message)) {
+const extractErrorDetails = (error: unknown) => {
+  const unknownRecord = error && typeof error === "object" ? (error as Record<string, unknown>) : null;
+  const message = error instanceof Error ? error.message : String(error);
+  const stderr = typeof unknownRecord?.stderr === "string" ? unknownRecord.stderr : "";
+  const stdout = typeof unknownRecord?.stdout === "string" ? unknownRecord.stdout : "";
+  const merged = [message, stderr, stdout]
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join("\n");
+
+  return {
+    message,
+    stderr,
+    stdout,
+    merged,
+  };
+};
+
+const toClaudeErrorMessage = (error: unknown) => {
+  const { message, merged } = extractErrorDetails(error);
+
+  if (AUTH_ERROR_PATTERN.test(merged)) {
     return "Claude Code 로그인이 필요합니다. 터미널에서 `claude /login`을 실행해 주세요.";
   }
 
-  if (/ENOENT/.test(message)) {
+  if (/ENOENT/.test(merged)) {
     return "Claude CLI를 찾을 수 없습니다. Claude Code CLI 설치 상태를 확인해 주세요.";
   }
 
@@ -138,7 +159,7 @@ export const claudeAdapter: AgentAdapter = {
   },
   async getStatus(cwd: string): Promise<AgentStatus> {
     try {
-      await execFileAsync("claude", ["-p", "--output-format", "json", "OK만 출력해줘."], {
+      await execFileAsync("claude", ["-p", "--output-format", "json", "OK"], {
         cwd,
         timeout: 15_000,
         maxBuffer: 1024 * 512,
@@ -151,11 +172,9 @@ export const claudeAdapter: AgentAdapter = {
         message: "Claude Code CLI에 로그인되어 있습니다.",
       };
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      const unavailable = /ENOENT/.test(message);
-      const authError = /401|authentication|please run \/login|invalid authentication credentials/i.test(
-        message,
-      );
+      const { merged, message } = extractErrorDetails(error);
+      const unavailable = /ENOENT/.test(merged);
+      const authError = AUTH_ERROR_PATTERN.test(merged);
 
       return {
         available: !unavailable,
@@ -165,7 +184,7 @@ export const claudeAdapter: AgentAdapter = {
           ? "Claude CLI를 찾을 수 없습니다."
           : authError
             ? "Claude Code 로그인이 필요합니다."
-            : message,
+            : "Claude Code 상태 확인에 실패했습니다. 터미널에서 `claude /login` 실행 후 다시 시도해 주세요.",
         loginCommand: unavailable ? undefined : "claude /login",
       };
     }

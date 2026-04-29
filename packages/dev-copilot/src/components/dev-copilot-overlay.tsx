@@ -419,7 +419,8 @@ export function DevCopilotOverlay() {
                     }}
                   >
                     {agentStatus.message}
-                    {agentStatus.loginCommand
+                    {agentStatus.loginCommand &&
+                    !agentStatus.message.includes(agentStatus.loginCommand)
                       ? ` 터미널에서 ${agentStatus.loginCommand} 실행`
                       : ""}
                   </p>
