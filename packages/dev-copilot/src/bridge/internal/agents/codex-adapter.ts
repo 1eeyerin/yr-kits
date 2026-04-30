@@ -90,14 +90,27 @@ export const codexAdapter: AgentAdapter = {
     const codexCommand = health.command;
     const outputPath = createTempPath("dev-copilot-codex", ".json");
     const schemaPath = createTempPath("dev-copilot-codex-schema", ".json");
+    const useOutputSchema = health.editStrategy !== "prompt-json";
 
-    await fs.writeFile(
-      schemaPath,
-      JSON.stringify(agentEditResponseSchema),
-      "utf-8",
-    );
+    if (request.mode === "edit" && useOutputSchema) {
+      await fs.writeFile(
+        schemaPath,
+        JSON.stringify(agentEditResponseSchema),
+        "utf-8",
+      );
+    }
 
-    const prompt = buildAgentPrompt(request);
+    const prompt = request.mode === "edit" && !useOutputSchema
+      ? [
+          buildAgentPrompt(request),
+          "",
+          "Return a JSON object only.",
+          "Do not include markdown fences unless strictly necessary.",
+          "The object must contain message, warnings, and changes.",
+          "warnings must be an array of strings.",
+          "changes must be an array of { path, oldText, newText } objects.",
+        ].join("\n")
+      : buildAgentPrompt(request);
     const env = await getCodexExecutionEnv();
     const args = [
       "exec",
@@ -111,7 +124,7 @@ export const codexAdapter: AgentAdapter = {
       "--skip-git-repo-check",
       "--output-last-message",
       outputPath,
-      ...(request.mode === "edit" ? ["--output-schema", schemaPath] : []),
+      ...(request.mode === "edit" && useOutputSchema ? ["--output-schema", schemaPath] : []),
       prompt,
     ];
 

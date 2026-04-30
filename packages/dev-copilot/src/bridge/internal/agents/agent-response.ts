@@ -87,7 +87,7 @@ export const parseClaudeEditResponse = (raw: string): AgentBridgeResponse => {
 };
 
 export const parseCodexEditResponse = (raw: string): AgentBridgeResponse => {
-  return normalizeAgentBridgeResponse(JSON.parse(raw) as Partial<AgentBridgeResponse>);
+  return normalizeAgentBridgeResponse(parseJsonLikeText(raw));
 };
 
 export const parseAnswerResponse = (rawOutput: string): AgentBridgeResponse => {

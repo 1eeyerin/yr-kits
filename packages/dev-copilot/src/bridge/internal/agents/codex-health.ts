@@ -12,6 +12,7 @@ import { runCli } from "./run-cli";
 import { createTempPath } from "../../shared/lib/temp-path";
 
 const CODEX_MODEL = process.env.DEV_COPILOT_CODEX_MODEL ?? "gpt-5.3-codex";
+type CodexEditStrategy = "output-schema" | "prompt-json";
 
 export type CodexHealthStatus =
   | "ready"
@@ -27,6 +28,7 @@ export interface CodexHealthCheck {
   command?: string;
   model?: string;
   loginCommand?: string;
+  editStrategy?: CodexEditStrategy;
 }
 
 let codexHealthPromise: Promise<CodexHealthCheck> | null = null;
@@ -42,6 +44,19 @@ const isAuthenticatedFromStatus = (statusOutput: string) => {
 };
 
 const createSchemaSmokePayload = () =>
+  JSON.stringify({
+    message: "ok",
+    warnings: [],
+    changes: [
+      {
+        path: "src/App.tsx",
+        oldText: "before",
+        newText: "after",
+      },
+    ],
+  });
+
+const createPromptJsonSmokePayload = () =>
   JSON.stringify({
     message: "ok",
     warnings: [],
@@ -134,6 +149,53 @@ const runEditSchemaSmokeTest = async (command: string, cwd: string, env: NodeJS.
   }
 };
 
+const runEditPromptJsonSmokeTest = async (command: string, cwd: string, env: NodeJS.ProcessEnv) => {
+  const outputPath = createTempPath("dev-copilot-codex-edit-prompt-json-smoke", ".json");
+
+  try {
+    await runCli(
+      command,
+      [
+        "exec",
+        "--ephemeral",
+        "--model",
+        CODEX_MODEL,
+        "--cd",
+        cwd,
+        "--sandbox",
+        "read-only",
+        "--skip-git-repo-check",
+        "--output-last-message",
+        outputPath,
+        [
+          "Return JSON only.",
+          "Respond with an object that has message, warnings, and changes.",
+          "warnings must be an empty array.",
+          "changes must contain exactly one object with path, oldText, and newText.",
+          "Use this exact payload:",
+          createPromptJsonSmokePayload(),
+        ].join("\n"),
+      ],
+      {
+        cwd,
+        timeoutMs: MODEL_STATUS_CHECK_TIMEOUT_MS,
+        maxBuffer: 1024 * 512,
+        env,
+      },
+    );
+
+    const output = await readFile(outputPath, "utf-8");
+    const normalized = output.trim().replace(/^```json\s*|\s*```$/g, "");
+    const parsed = JSON.parse(normalized);
+
+    if (JSON.stringify(parsed) !== createPromptJsonSmokePayload()) {
+      throw new Error("Codex CLI prompt-json smoke test payload mismatch");
+    }
+  } finally {
+    await rm(outputPath, { force: true });
+  }
+};
+
 export const getCodexHealthCheck = async (cwd: string): Promise<CodexHealthCheck> => {
   if (codexHealthPromise) {
     return codexHealthPromise;
@@ -149,7 +211,7 @@ export const getCodexHealthCheck = async (cwd: string): Promise<CodexHealthCheck
         message:
           error instanceof Error
             ? error.message
-            : "내장 Codex CLI를 찾을 수 없습니다.",
+            : "Codex CLI를 찾을 수 없습니다.",
       } satisfies CodexHealthCheck;
     }
 
@@ -164,7 +226,7 @@ export const getCodexHealthCheck = async (cwd: string): Promise<CodexHealthCheck
       });
       const statusText = stdout.trim() || stderr.trim();
 
-      if (!isAuthenticatedFromStatus(statusText)) {
+      if (statusText && !isAuthenticatedFromStatus(statusText)) {
         return {
           status: "login_required",
           message: statusText || "Codex CLI 로그인이 필요합니다.",
@@ -186,16 +248,16 @@ export const getCodexHealthCheck = async (cwd: string): Promise<CodexHealthCheck
       if (isCliCommandMissing(details)) {
         return {
           status: "unavailable",
-          message: "내장 Codex CLI를 실행할 수 없습니다.",
+          message: "Codex CLI를 실행할 수 없습니다.",
         } satisfies CodexHealthCheck;
       }
 
-      return {
-        status: "login_required",
-        message: details.message,
-        loginCommand: "codex login",
-        command,
-      } satisfies CodexHealthCheck;
+      if (isCliCommandMissing(details)) {
+        return {
+          status: "unavailable",
+          message: "Codex CLI를 실행할 수 없습니다.",
+        } satisfies CodexHealthCheck;
+      }
     }
 
     try {
@@ -215,13 +277,31 @@ export const getCodexHealthCheck = async (cwd: string): Promise<CodexHealthCheck
       await runEditSchemaSmokeTest(command, cwd, env);
     } catch (error) {
       const details = extractCliErrorDetails(error);
-      return {
-        status: isCliTimeout(details) ? "timeout" : "schema_failed",
-        message: isCliTimeout(details)
-          ? "Codex CLI edit schema smoke test 중 시간이 초과되었습니다."
-          : "Codex CLI edit 응답 스키마 smoke test에 실패했습니다.",
-        command,
-      } satisfies CodexHealthCheck;
+
+      if (isCliTimeout(details)) {
+        return {
+          status: "timeout",
+          message: "Codex CLI edit schema smoke test 중 시간이 초과되었습니다.",
+          command,
+        } satisfies CodexHealthCheck;
+      }
+
+      try {
+        await runEditPromptJsonSmokeTest(command, cwd, env);
+        return {
+          status: "ready",
+          message: "Codex CLI가 prompt-json fallback으로 응답 준비를 마쳤습니다.",
+          command,
+          model: CODEX_MODEL,
+          editStrategy: "prompt-json",
+        } satisfies CodexHealthCheck;
+      } catch {
+        return {
+          status: "schema_failed",
+          message: "Codex CLI edit 응답 스키마 smoke test에 실패했습니다.",
+          command,
+        } satisfies CodexHealthCheck;
+      }
     }
 
     return {
@@ -229,6 +309,7 @@ export const getCodexHealthCheck = async (cwd: string): Promise<CodexHealthCheck
       message: "Codex CLI가 응답 준비를 마쳤습니다.",
       command,
       model: CODEX_MODEL,
+      editStrategy: "output-schema",
     } satisfies CodexHealthCheck;
   })();
 
