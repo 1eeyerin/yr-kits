@@ -34,7 +34,7 @@ process.exit(0);
   return commandPath;
 };
 
-test("resolveCodexCommand는 실행 가능한 후보 중 최신 Codex CLI를 선택한다", async () => {
+test("resolveCodexCommand는 내장 Codex가 없으면 실행 가능한 PATH 후보 중 최신 Codex CLI를 선택한다", async () => {
   __internal.resetCodexCommandCacheForTests();
   const oldDir = await mkdtemp(join(tmpdir(), "dev-copilot-codex-old-"));
   const newDir = await mkdtemp(join(tmpdir(), "dev-copilot-codex-new-"));
@@ -62,23 +62,24 @@ test("resolveCodexCommand는 실행 가능한 후보 중 최신 Codex CLI를 선
   }
 });
 
-test("resolveCodexCommand는 환경변수 Codex가 설정을 해석하지 못하면 호환되는 PATH 후보를 선택한다", async () => {
+test("resolveCodexCommand는 DEV_COPILOT_CODEX_BIN보다 내장 Codex CLI를 우선 선택한다", async () => {
   __internal.resetCodexCommandCacheForTests();
   const envDir = await mkdtemp(join(tmpdir(), "dev-copilot-codex-env-"));
-  const pathDir = await mkdtemp(join(tmpdir(), "dev-copilot-codex-path-"));
-  const packageRoot = await mkdtemp(join(tmpdir(), "dev-copilot-empty-package-"));
-  const envCommand = await createFakeCodex(envDir, "0.130.0", { failExec: true });
-  const pathCommand = await createFakeCodex(pathDir, "0.124.0");
+  const packageRoot = await mkdtemp(join(tmpdir(), "dev-copilot-package-"));
+  const bundledBinDir = join(packageRoot, "node_modules", ".bin");
+  await mkdir(bundledBinDir, { recursive: true });
+  const envCommand = await createFakeCodex(envDir, "0.140.0");
+  const bundledCommand = await createFakeCodex(bundledBinDir, "0.130.0");
   const originalPath = process.env.PATH;
   const originalEnvCommand = process.env.DEV_COPILOT_CODEX_BIN;
   const originalPackageRoot = process.env.DEV_COPILOT_PACKAGE_ROOT_FOR_TESTS;
 
-  process.env.PATH = [pathDir, dirname(process.execPath)].filter(Boolean).join(":");
+  process.env.PATH = dirname(process.execPath);
   process.env.DEV_COPILOT_CODEX_BIN = envCommand;
   process.env.DEV_COPILOT_PACKAGE_ROOT_FOR_TESTS = packageRoot;
 
   try {
-    assert.equal(await resolveCodexCommand(), pathCommand);
+    assert.equal(await resolveCodexCommand(), bundledCommand);
   } finally {
     process.env.PATH = originalPath;
     if (originalEnvCommand === undefined) {

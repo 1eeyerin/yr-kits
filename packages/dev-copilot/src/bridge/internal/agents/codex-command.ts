@@ -8,7 +8,7 @@ import { createTempPath } from "../../shared/lib/temp-path";
 
 interface CodexCommandCandidate {
   command: string;
-  source: "bundled" | "env" | "path";
+  source: "bundled" | "path";
 }
 
 interface ResolvedCodexCommand extends CodexCommandCandidate {
@@ -95,11 +95,6 @@ const collectBundledCodexCandidates = async () => {
 
 const collectCodexCandidates = async () => {
   const candidates: CodexCommandCandidate[] = [];
-  const envCommand = process.env.DEV_COPILOT_CODEX_BIN?.trim();
-
-  if (envCommand) {
-    candidates.push({ command: envCommand, source: "env" });
-  }
 
   candidates.push(...await collectBundledCodexCandidates());
 
@@ -220,10 +215,9 @@ export const resolveCodexCommand = async () => {
     const available = resolved.filter((candidate): candidate is ResolvedCodexCommand => Boolean(candidate));
 
     if (!available.length) {
-      return process.env.DEV_COPILOT_CODEX_BIN?.trim() || "codex";
+      return "codex";
     }
 
-    const envCandidate = available.find((candidate) => candidate.source === "env");
     const bundledCandidates = available
       .filter((candidate) => candidate.source === "bundled")
       .sort(compareCodexVersionDesc);
@@ -231,10 +225,6 @@ export const resolveCodexCommand = async () => {
     const pathCandidates = available
       .filter((candidate) => candidate.source === "path")
       .sort(compareCodexVersionDesc);
-
-    if (envCandidate && (await canRunCodexExec(envCandidate.command))) {
-      return envCandidate.command;
-    }
 
     for (const candidate of bundledCandidates) {
       if (await canRunCodexExec(candidate.command)) {
@@ -248,7 +238,7 @@ export const resolveCodexCommand = async () => {
       }
     }
 
-    return envCandidate?.command ?? bundledCandidates[0]?.command ?? pathCandidates[0]?.command ?? available[0].command;
+    return bundledCandidates[0]?.command ?? pathCandidates[0]?.command ?? available[0].command;
   })();
 
   return codexCommandPromise;
