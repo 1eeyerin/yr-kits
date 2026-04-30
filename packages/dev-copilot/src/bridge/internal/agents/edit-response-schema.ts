@@ -2,7 +2,6 @@ export const agentEditResponseSchema = {
   type: "object",
   properties: {
     message: { type: "string" },
-    patchPreview: { type: "string" },
     warnings: {
       type: "array",
       items: { type: "string" },
@@ -22,7 +21,7 @@ export const agentEditResponseSchema = {
       },
     },
   },
-  required: ["message", "changes"],
+  required: ["message", "warnings", "changes"],
   additionalProperties: false,
 } as const;
 
