@@ -5,6 +5,7 @@
   "description": "CLI로 유틸/컴포넌트 자동 설치하는 모노레포",
   "scripts": {
     "build": "pnpm -r run build",
+    "prepare": "husky",
     "test": "pnpm -r run test",
     "website": "pnpm --dir website start"
   },
@@ -13,5 +14,8 @@
   "packageManager": "pnpm@10.0.0",
   "engines": {
     "node": "22.x"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
   }
 }
