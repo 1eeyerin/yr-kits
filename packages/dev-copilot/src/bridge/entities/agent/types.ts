@@ -33,6 +33,7 @@ export interface AgentStatus {
 
 export interface AgentAdapter {
   agent: CopilotAgent;
+  warmup?(cwd: string): Promise<void>;
   run(request: AgentBridgeRequest): Promise<AgentBridgeResponse>;
   getStatus(cwd: string): Promise<AgentStatus>;
 }

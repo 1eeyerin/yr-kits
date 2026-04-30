@@ -44,7 +44,7 @@
     "build": "tsdown",
     "dev": "tsdown --watch",
     "prepublishOnly": "pnpm run build",
-    "test": "tsdown src/**/*.test.ts --format esm --out-dir /tmp/dev-copilot-tests --clean && node --test /tmp/dev-copilot-tests/*.test.mjs",
+    "test": "tsdown src/**/*.test.ts --format esm --out-dir /tmp/dev-copilot-tests --clean && node --test $(find /tmp/dev-copilot-tests -name '*.test.mjs' -print)",
     "release:patch": "npm version patch --no-git-tag-version && pnpm publish --access public --no-git-checks",
     "release:minor": "npm version minor --no-git-tag-version && pnpm publish --access public --no-git-checks",
     "release:major": "npm version major --no-git-tag-version && pnpm publish --access public --no-git-checks",

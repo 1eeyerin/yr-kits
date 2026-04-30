@@ -2,22 +2,20 @@ import { promises as fs } from "node:fs";
 
 import { buildAgentPrompt } from "../prompts";
 import {
-  parseAnswerResponse,
   parseCodexEditResponse,
+  parseAnswerResponse,
 } from "./agent-response";
 import {
   extractCliErrorDetails,
   isCliCommandMissing,
 } from "./cli-error";
 import { agentEditResponseSchema } from "./edit-response-schema";
+import { getCodexHealthCheck } from "./codex-health";
 import { runCli } from "./run-cli";
-import { resolveCodexCommand } from "./codex-command";
 import { getCodexExecutionEnv } from "./codex-home";
 import {
   DEFAULT_AGENT_MAX_BUFFER_BYTES,
   DEFAULT_AGENT_TIMEOUT_MS,
-  MODEL_STATUS_CHECK_TIMEOUT_MS,
-  STATUS_CHECK_TIMEOUT_MS,
 } from "./constants";
 import {
   createAuthenticatedStatus,
@@ -35,62 +33,6 @@ import { createTempPath } from "../../shared/lib/temp-path";
 
 const CODEX_MODEL = process.env.DEV_COPILOT_CODEX_MODEL ?? "gpt-5.3-codex";
 const CODEX_TIMEOUT_MS = Number(process.env.DEV_COPILOT_CODEX_TIMEOUT_MS ?? DEFAULT_AGENT_TIMEOUT_MS);
-const fallbackDisableMcpArgs = [
-] as const;
-
-interface CodexMcpServer {
-  name: string;
-}
-
-let disableAllMcpArgsPromise: Promise<string[]> | null = null;
-
-const getDisableAllMcpArgs = async () => {
-  if (process.env.DEV_COPILOT_DISABLE_ALL_MCP === "false") {
-    return [] as string[];
-  }
-
-  const codexCommand = await resolveCodexCommand();
-
-  if (disableAllMcpArgsPromise) {
-    return disableAllMcpArgsPromise;
-  }
-
-  disableAllMcpArgsPromise = (async () => {
-    try {
-      const { stdout } = await runCli(codexCommand, ["mcp", "list", "--json"], {
-        cwd: process.cwd(),
-        timeoutMs: STATUS_CHECK_TIMEOUT_MS,
-        maxBuffer: 1024 * 1024,
-        env: await getCodexExecutionEnv(),
-      });
-
-      const parsed = JSON.parse(stdout) as CodexMcpServer[];
-      const names = parsed
-        .map((server) => server?.name?.trim())
-        .filter((name): name is string => Boolean(name));
-
-      if (!names.length) {
-        return [...fallbackDisableMcpArgs];
-      }
-
-      return names.flatMap((name) => ["-c", `mcp_servers.${name}.enabled=false`]);
-    } catch {
-      return [...fallbackDisableMcpArgs];
-    }
-  })();
-
-  return disableAllMcpArgsPromise;
-};
-
-const isCodexAuthenticatedFromStatus = (statusOutput: string) => {
-  const normalized = statusOutput.toLowerCase();
-
-  if (/not logged in|login required|로그인 필요/.test(normalized)) {
-    return false;
-  }
-
-  return /logged in|로그인됨|로그인되어/.test(normalized);
-};
 
 const isCodexLoginRequiredError = (error: unknown) => {
   const details = extractCliErrorDetails(error);
@@ -134,53 +76,18 @@ const toCodexErrorMessage = (error: unknown) => {
   return details.message;
 };
 
-const getCodexModelName = async (cwd: string) => {
-  const outputPath = createTempPath("dev-copilot-codex-status", ".txt");
-
-  try {
-    const codexCommand = await resolveCodexCommand();
-    const disableAllMcpArgs = await getDisableAllMcpArgs();
-    const env = await getCodexExecutionEnv();
-    const { stdout, stderr } = await runCli(
-      codexCommand,
-      [
-        ...disableAllMcpArgs,
-        "exec",
-        "--ephemeral",
-        "--model",
-        CODEX_MODEL,
-        "--cd",
-        cwd,
-        "--sandbox",
-        "read-only",
-        "--skip-git-repo-check",
-        "--output-last-message",
-        outputPath,
-        "OK만 출력해줘.",
-      ],
-      {
-        cwd,
-        timeoutMs: MODEL_STATUS_CHECK_TIMEOUT_MS,
-        maxBuffer: 1024 * 512,
-        env,
-      },
-    );
-    const output = `${stdout}\n${stderr}`;
-    const match = output.match(/^model:\s*(.+)$/m);
-
-    return match?.[1]?.trim();
-  } catch {
-    return undefined;
-  } finally {
-    await fs.rm(outputPath, { force: true });
-  }
-};
-
 export const codexAdapter: AgentAdapter = {
   agent: "codex",
+  async warmup(cwd: string) {
+    await getCodexHealthCheck(cwd);
+  },
   async run(request: AgentBridgeRequest): Promise<AgentBridgeResponse> {
-    const codexCommand = await resolveCodexCommand();
-    const disableAllMcpArgs = await getDisableAllMcpArgs();
+    const health = await getCodexHealthCheck(request.cwd);
+    if (health.status !== "ready" || !health.command) {
+      throw new Error(health.message);
+    }
+
+    const codexCommand = health.command;
     const outputPath = createTempPath("dev-copilot-codex", ".json");
     const schemaPath = createTempPath("dev-copilot-codex-schema", ".json");
 
@@ -193,7 +100,6 @@ export const codexAdapter: AgentAdapter = {
     const prompt = buildAgentPrompt(request);
     const env = await getCodexExecutionEnv();
     const args = [
-      ...disableAllMcpArgs,
       "exec",
       "--ephemeral",
       "--model",
@@ -210,7 +116,7 @@ export const codexAdapter: AgentAdapter = {
     ];
 
     try {
-      const { stdout } = await runCli(codexCommand, args, {
+      await runCli(codexCommand, args, {
         cwd: request.cwd,
         maxBuffer: DEFAULT_AGENT_MAX_BUFFER_BYTES,
         timeoutMs: Number(process.env.DEV_COPILOT_AGENT_TIMEOUT_MS ?? CODEX_TIMEOUT_MS),
@@ -218,12 +124,8 @@ export const codexAdapter: AgentAdapter = {
       });
 
       if (request.mode === "answer") {
-        try {
-          const output = await fs.readFile(outputPath, "utf-8");
-          return parseAnswerResponse(output);
-        } catch {
-          return parseAnswerResponse(stdout);
-        }
+        const output = await fs.readFile(outputPath, "utf-8");
+        return parseAnswerResponse(output);
       }
 
       return parseCodexEditResponse(await fs.readFile(outputPath, "utf-8"));
@@ -235,47 +137,35 @@ export const codexAdapter: AgentAdapter = {
     }
   },
   async getStatus(cwd: string): Promise<AgentStatus> {
-    try {
-      const codexCommand = await resolveCodexCommand();
-      const { stdout, stderr } = await runCli(codexCommand, ["login", "status"], {
-        cwd,
-        timeoutMs: STATUS_CHECK_TIMEOUT_MS,
-        maxBuffer: 1024 * 128,
-        env: await getCodexExecutionEnv(),
-      });
-      const output = `${stdout}\n${stderr}`.trim();
-      const authenticated = isCodexAuthenticatedFromStatus(output);
-      const model = authenticated ? await getCodexModelName(cwd) : undefined;
+    const health = await getCodexHealthCheck(cwd);
 
-      if (authenticated) {
-        return createAuthenticatedStatus({
-          agent: "codex",
-          message: "Codex CLI에 로그인되어 있습니다.",
-          model,
-        });
-      }
-
-      return createLoginRequiredStatus({
+    if (health.status === "ready") {
+      return createAuthenticatedStatus({
         agent: "codex",
-        message: output || "Codex CLI 로그인이 필요합니다.",
-        loginCommand: "codex login",
-      });
-    } catch (error) {
-      const details = extractCliErrorDetails(error);
-
-      if (isCliCommandMissing(details)) {
-        return createUnavailableStatus({
-          agent: "codex",
-          message: "Codex CLI를 찾을 수 없습니다.",
-        });
-      }
-
-      return createUnauthenticatedStatus({
-        agent: "codex",
-        message: toCodexErrorMessage(error),
-        loginCommand: isCodexLoginRequiredError(error) ? "codex login" : undefined,
+        message: "Codex CLI에 로그인되어 있습니다.",
+        model: health.model ?? CODEX_MODEL,
       });
     }
+
+    if (health.status === "login_required") {
+      return createLoginRequiredStatus({
+        agent: "codex",
+        message: health.message,
+        loginCommand: health.loginCommand ?? "codex login",
+      });
+    }
+
+    if (health.status === "unavailable") {
+      return createUnavailableStatus({
+        agent: "codex",
+        message: health.message,
+      });
+    }
+
+    return createUnauthenticatedStatus({
+      agent: "codex",
+      message: health.message,
+    });
   },
 };
 

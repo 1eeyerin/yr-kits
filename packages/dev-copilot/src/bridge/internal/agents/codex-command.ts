@@ -1,37 +1,18 @@
-import { access, rm } from "node:fs/promises";
-import { delimiter, dirname, join, parse } from "node:path";
+import { access } from "node:fs/promises";
+import { dirname, join, parse } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { runCli } from "./run-cli";
 import { STATUS_CHECK_TIMEOUT_MS } from "./constants";
-import { getCodexExecutionEnv } from "./codex-home";
-import { createTempPath } from "../../shared/lib/temp-path";
+import { runCli } from "./run-cli";
 
 interface CodexCommandCandidate {
   command: string;
-  source: "bundled" | "path";
 }
 
 interface ResolvedCodexCommand extends CodexCommandCandidate {
   version: string;
   versionParts: number[];
 }
-
-const CODEX_SMOKE_MODEL = process.env.DEV_COPILOT_CODEX_MODEL ?? "gpt-5.3-codex";
-const SMOKE_TEST_DISABLE_MCP_ARGS = [
-  "-c",
-  "mcp_servers.notion.enabled=false",
-  "-c",
-  "mcp_servers.figma.enabled=false",
-  "-c",
-  "mcp_servers.linear.enabled=false",
-  "-c",
-  "mcp_servers.context7.enabled=false",
-  "-c",
-  "mcp_servers.playwright.enabled=false",
-  "-c",
-  "mcp_servers.zeplin.enabled=false",
-] as const;
 
 let codexCommandPromise: Promise<string> | null = null;
 
@@ -86,7 +67,7 @@ const collectBundledCodexCandidates = async () => {
       const command = join(root, "node_modules", ".bin", name);
 
       if (await canAccess(command)) {
-        candidates.push({ command, source: "bundled" });
+        candidates.push({ command });
       }
     }
   }
@@ -95,21 +76,7 @@ const collectBundledCodexCandidates = async () => {
 };
 
 const collectCodexCandidates = async () => {
-  const candidates: CodexCommandCandidate[] = [];
-
-  candidates.push(...await collectBundledCodexCandidates());
-
-  const executableNames = getPathExecutableNames();
-  const pathCandidates = (process.env.PATH ?? "")
-    .split(delimiter)
-    .filter(Boolean)
-    .flatMap((pathDir) => executableNames.map((name) => join(pathDir, name)));
-
-  for (const command of pathCandidates) {
-    if (await canAccess(command)) {
-      candidates.push({ command, source: "path" });
-    }
-  }
+  const candidates = await collectBundledCodexCandidates();
 
   return Array.from(
     new Map(candidates.map((candidate) => [candidate.command, candidate])).values(),
@@ -130,43 +97,6 @@ const parseCodexVersion = (output: string) => {
       .slice(0, 3)
       .map((part) => Number.parseInt(part, 10) || 0),
   };
-};
-
-const canRunCodexExec = async (command: string) => {
-  const outputPath = createTempPath("dev-copilot-codex-smoke", ".txt");
-  const env = await getCodexExecutionEnv();
-
-  try {
-    await runCli(
-      command,
-      [
-        ...SMOKE_TEST_DISABLE_MCP_ARGS,
-        "exec",
-        "--ephemeral",
-        "--model",
-        CODEX_SMOKE_MODEL,
-        "--cd",
-        process.cwd(),
-        "--sandbox",
-        "read-only",
-        "--skip-git-repo-check",
-        "--output-last-message",
-        outputPath,
-        "OK만 출력해줘.",
-      ],
-      {
-        cwd: process.cwd(),
-        timeoutMs: STATUS_CHECK_TIMEOUT_MS,
-        maxBuffer: 1024 * 512,
-        env,
-      },
-    );
-    return true;
-  } catch {
-    return false;
-  } finally {
-    await rm(outputPath, { force: true });
-  }
 };
 
 const resolveCandidate = async (candidate: CodexCommandCandidate) => {
@@ -218,30 +148,10 @@ export const resolveCodexCommand = async () => {
     const available = resolved.filter((candidate): candidate is ResolvedCodexCommand => Boolean(candidate));
 
     if (!available.length) {
-      return "codex";
+      throw new Error("내장 Codex CLI를 찾을 수 없습니다.");
     }
 
-    const bundledCandidates = available
-      .filter((candidate) => candidate.source === "bundled")
-      .sort(compareCodexVersionDesc);
-
-    const pathCandidates = available
-      .filter((candidate) => candidate.source === "path")
-      .sort(compareCodexVersionDesc);
-
-    for (const candidate of bundledCandidates) {
-      if (await canRunCodexExec(candidate.command)) {
-        return candidate.command;
-      }
-    }
-
-    for (const candidate of pathCandidates) {
-      if (await canRunCodexExec(candidate.command)) {
-        return candidate.command;
-      }
-    }
-
-    return bundledCandidates[0]?.command ?? pathCandidates[0]?.command ?? available[0].command;
+    return available.sort(compareCodexVersionDesc)[0].command;
   })();
 
   return codexCommandPromise;

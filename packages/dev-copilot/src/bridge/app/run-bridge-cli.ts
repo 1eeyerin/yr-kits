@@ -1,4 +1,5 @@
 import type { CopilotAgent } from "../../shared/contracts/copilot";
+import { resolveAgentAdapter } from "../features/agent-runner/resolve-agent-adapter";
 import { createDevCopilotBridgeConfig } from "../shared/config/bridge-config";
 import { createDevCopilotBridgeServer } from "./create-bridge-server";
 
@@ -48,4 +49,14 @@ export const runDevCopilotBridgeCli = async (argv: string[]) => {
       resolve();
     });
   });
+
+  void resolveAgentAdapter(config.agent)
+    .warmup?.(config.rootDir)
+    .catch((error) => {
+      process.stderr.write(
+        `[dev-copilot-bridge] startup health check failed: ${
+          error instanceof Error ? error.message : String(error)
+        }\n`,
+      );
+    });
 };

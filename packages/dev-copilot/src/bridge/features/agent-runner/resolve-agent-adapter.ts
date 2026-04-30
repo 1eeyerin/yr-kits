@@ -8,6 +8,19 @@ const adapters: Record<CopilotAgent, AgentAdapter> = {
   claude: claudeAdapter,
 };
 
+const testAdapters: Partial<Record<CopilotAgent, AgentAdapter>> = {};
+
 export const resolveAgentAdapter = (agent: CopilotAgent): AgentAdapter => {
-  return adapters[agent];
+  return testAdapters[agent] ?? adapters[agent];
+};
+
+export const __internal = {
+  setAgentAdapterForTests: (agent: CopilotAgent, adapter: AgentAdapter) => {
+    testAdapters[agent] = adapter;
+  },
+  resetAgentAdaptersForTests: () => {
+    for (const agent of Object.keys(testAdapters) as CopilotAgent[]) {
+      delete testAdapters[agent];
+    }
+  },
 };

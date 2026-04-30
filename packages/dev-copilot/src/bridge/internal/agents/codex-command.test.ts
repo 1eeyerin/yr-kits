@@ -34,12 +34,12 @@ process.exit(0);
   return commandPath;
 };
 
-test("resolveCodexCommand는 내장 Codex가 없으면 실행 가능한 PATH 후보 중 최신 Codex CLI를 선택한다", async () => {
+test("resolveCodexCommand는 내장 Codex가 없으면 오류를 던진다", async () => {
   __internal.resetCodexCommandCacheForTests();
   const oldDir = await mkdtemp(join(tmpdir(), "dev-copilot-codex-old-"));
   const newDir = await mkdtemp(join(tmpdir(), "dev-copilot-codex-new-"));
-  const oldCommand = await createFakeCodex(oldDir, "0.111.0");
-  const newCommand = await createFakeCodex(newDir, "0.124.0-alpha.2");
+  await createFakeCodex(oldDir, "0.111.0");
+  await createFakeCodex(newDir, "0.124.0-alpha.2");
   const packageRoot = await mkdtemp(join(tmpdir(), "dev-copilot-empty-package-"));
   const originalPath = process.env.PATH;
   const originalPackageRoot = process.env.DEV_COPILOT_PACKAGE_ROOT_FOR_TESTS;
@@ -49,8 +49,10 @@ test("resolveCodexCommand는 내장 Codex가 없으면 실행 가능한 PATH 후
   delete process.env.DEV_COPILOT_CODEX_BIN;
 
   try {
-    assert.equal(await resolveCodexCommand(), newCommand);
-    assert.notEqual(await resolveCodexCommand(), oldCommand);
+    await assert.rejects(
+      () => resolveCodexCommand(),
+      /내장 Codex CLI를 찾을 수 없습니다/,
+    );
   } finally {
     process.env.PATH = originalPath;
     if (originalPackageRoot === undefined) {
@@ -62,31 +64,22 @@ test("resolveCodexCommand는 내장 Codex가 없으면 실행 가능한 PATH 후
   }
 });
 
-test("resolveCodexCommand는 DEV_COPILOT_CODEX_BIN보다 내장 Codex CLI를 우선 선택한다", async () => {
+test("resolveCodexCommand는 내장 Codex CLI만 사용한다", async () => {
   __internal.resetCodexCommandCacheForTests();
-  const envDir = await mkdtemp(join(tmpdir(), "dev-copilot-codex-env-"));
   const packageRoot = await mkdtemp(join(tmpdir(), "dev-copilot-package-"));
   const bundledBinDir = join(packageRoot, "node_modules", ".bin");
   await mkdir(bundledBinDir, { recursive: true });
-  const envCommand = await createFakeCodex(envDir, "0.140.0");
   const bundledCommand = await createFakeCodex(bundledBinDir, "0.130.0");
   const originalPath = process.env.PATH;
-  const originalEnvCommand = process.env.DEV_COPILOT_CODEX_BIN;
   const originalPackageRoot = process.env.DEV_COPILOT_PACKAGE_ROOT_FOR_TESTS;
 
   process.env.PATH = dirname(process.execPath);
-  process.env.DEV_COPILOT_CODEX_BIN = envCommand;
   process.env.DEV_COPILOT_PACKAGE_ROOT_FOR_TESTS = packageRoot;
 
   try {
     assert.equal(await resolveCodexCommand(), bundledCommand);
   } finally {
     process.env.PATH = originalPath;
-    if (originalEnvCommand === undefined) {
-      delete process.env.DEV_COPILOT_CODEX_BIN;
-    } else {
-      process.env.DEV_COPILOT_CODEX_BIN = originalEnvCommand;
-    }
     if (originalPackageRoot === undefined) {
       delete process.env.DEV_COPILOT_PACKAGE_ROOT_FOR_TESTS;
     } else {
@@ -96,7 +89,7 @@ test("resolveCodexCommand는 DEV_COPILOT_CODEX_BIN보다 내장 Codex CLI를 우
   }
 });
 
-test("resolveCodexCommand는 호환되는 내장 Codex CLI를 PATH 후보보다 우선 선택한다", async () => {
+test("resolveCodexCommand는 PATH 후보보다 내장 Codex CLI를 우선 선택한다", async () => {
   __internal.resetCodexCommandCacheForTests();
   const packageRoot = await mkdtemp(join(tmpdir(), "dev-copilot-package-"));
   const bundledBinDir = join(packageRoot, "node_modules", ".bin");
