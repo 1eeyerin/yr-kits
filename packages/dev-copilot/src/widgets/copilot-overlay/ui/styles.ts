@@ -88,6 +88,7 @@ export const subtitleStyle: CSSProperties = {
   fontSize: 14,
   lineHeight: 1.5,
   color: OVERLAY_COLOR.textSecondary,
+  wordBreak: "keep-all",
 };
 
 export const statusBoxStyle: CSSProperties = {
