@@ -7,11 +7,21 @@
     "yr-kits": "./dist/cli.mjs"
   },
   "main": "./dist/cli.mjs",
+  "exports": {
+    ".": {
+      "import": "./dist/cli.mjs",
+      "default": "./dist/cli.mjs"
+    },
+    "./utils/ime-enter-handler": {
+      "import": "./dist/utils/ime-enter-handler.mjs",
+      "default": "./dist/utils/ime-enter-handler.mjs"
+    }
+  },
   "scripts": {
     "build": "tsdown && ./scripts/copy-templates.sh",
     "dev": "tsdown --watch",
     "prepublishOnly": "pnpm run build",
-    "test": "echo \"No tests yet\"",
+    "test": "tsdown src/**/*.test.ts --format esm --out-dir /tmp/yr-kits-cli-tests --clean && node --test /tmp/yr-kits-cli-tests/*.test.mjs",
     "release:patch": "npm version patch --no-git-tag-version && pnpm publish --access public --no-git-checks",
     "release:minor": "npm version minor --no-git-tag-version && pnpm publish --access public --no-git-checks",
     "release:major": "npm version major --no-git-tag-version && pnpm publish --access public --no-git-checks"
