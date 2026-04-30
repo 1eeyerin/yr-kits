@@ -32,6 +32,9 @@ importers:
       '@openai/codex':
         specifier: ^0.130.0
         version: 0.130.0
+      '@yr-kits/cli':
+        specifier: workspace:^
+        version: link:../cli
       react:
         specifier: ^18.2.0 || ^19.0.0
         version: 18.3.1
@@ -57,6 +60,9 @@ importers:
 
   packages/dev-copilot-playground:
     dependencies:
+      '@yr-kits/cli':
+        specifier: workspace:^
+        version: link:../cli
       '@yr-kits/dev-copilot':
         specifier: workspace:^
         version: link:../dev-copilot

@@ -1,4 +1,6 @@
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import type { CopilotAgent, CopilotAgentStatusResponse, CopilotMode } from "../../../shared/contracts/copilot";
+import { createEnterKeySubmitHandler } from "@yr-kits/cli/utils/ime-enter-handler";
 import { isAgentReady } from "../../../entities/agent/model";
 import { AgentSelector } from "./agent-selector";
 import { AgentStatusCard } from "./agent-status-card";
@@ -37,6 +39,9 @@ export function CopilotRequestForm({
   onSubmit,
 }: CopilotRequestFormProps) {
   const submitDisabled = busy || !isAgentReady(agentStatus);
+  const handlePromptKeyDown = createEnterKeySubmitHandler<ReactKeyboardEvent<HTMLTextAreaElement>>(
+    () => onSubmit("edit"),
+  );
 
   return (
     <div style={inputPanelStyle}>
@@ -61,6 +66,7 @@ export function CopilotRequestForm({
       <textarea
         value={prompt}
         onChange={(event) => onPromptChange(event.target.value)}
+        onKeyDown={handlePromptKeyDown}
         rows={4}
         placeholder={OVERLAY_LABELS.promptPlaceholder}
         className="yrdc-field"
