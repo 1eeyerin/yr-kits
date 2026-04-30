@@ -12,6 +12,7 @@ import {
 import { agentEditResponseSchema } from "./edit-response-schema";
 import { runCli } from "./run-cli";
 import { resolveCodexCommand } from "./codex-command";
+import { getCodexExecutionEnv } from "./codex-home";
 import {
   DEFAULT_AGENT_MAX_BUFFER_BYTES,
   DEFAULT_AGENT_TIMEOUT_MS,
@@ -35,18 +36,6 @@ import { createTempPath } from "../../shared/lib/temp-path";
 const CODEX_MODEL = process.env.DEV_COPILOT_CODEX_MODEL ?? "gpt-5.3-codex";
 const CODEX_TIMEOUT_MS = Number(process.env.DEV_COPILOT_CODEX_TIMEOUT_MS ?? DEFAULT_AGENT_TIMEOUT_MS);
 const fallbackDisableMcpArgs = [
-  "-c",
-  "mcp_servers.notion.enabled=false",
-  "-c",
-  "mcp_servers.figma.enabled=false",
-  "-c",
-  "mcp_servers.linear.enabled=false",
-  "-c",
-  "mcp_servers.context7.enabled=false",
-  "-c",
-  "mcp_servers.playwright.enabled=false",
-  "-c",
-  "mcp_servers.zeplin.enabled=false",
 ] as const;
 
 interface CodexMcpServer {
@@ -72,6 +61,7 @@ const getDisableAllMcpArgs = async () => {
         cwd: process.cwd(),
         timeoutMs: STATUS_CHECK_TIMEOUT_MS,
         maxBuffer: 1024 * 1024,
+        env: await getCodexExecutionEnv(),
       });
 
       const parsed = JSON.parse(stdout) as CodexMcpServer[];
@@ -150,6 +140,7 @@ const getCodexModelName = async (cwd: string) => {
   try {
     const codexCommand = await resolveCodexCommand();
     const disableAllMcpArgs = await getDisableAllMcpArgs();
+    const env = await getCodexExecutionEnv();
     const { stdout, stderr } = await runCli(
       codexCommand,
       [
@@ -171,6 +162,7 @@ const getCodexModelName = async (cwd: string) => {
         cwd,
         timeoutMs: MODEL_STATUS_CHECK_TIMEOUT_MS,
         maxBuffer: 1024 * 512,
+        env,
       },
     );
     const output = `${stdout}\n${stderr}`;
@@ -199,6 +191,7 @@ export const codexAdapter: AgentAdapter = {
     );
 
     const prompt = buildAgentPrompt(request);
+    const env = await getCodexExecutionEnv();
     const args = [
       ...disableAllMcpArgs,
       "exec",
@@ -221,6 +214,7 @@ export const codexAdapter: AgentAdapter = {
         cwd: request.cwd,
         maxBuffer: DEFAULT_AGENT_MAX_BUFFER_BYTES,
         timeoutMs: Number(process.env.DEV_COPILOT_AGENT_TIMEOUT_MS ?? CODEX_TIMEOUT_MS),
+        env,
       });
 
       if (request.mode === "answer") {
@@ -247,6 +241,7 @@ export const codexAdapter: AgentAdapter = {
         cwd,
         timeoutMs: STATUS_CHECK_TIMEOUT_MS,
         maxBuffer: 1024 * 128,
+        env: await getCodexExecutionEnv(),
       });
       const output = `${stdout}\n${stderr}`.trim();
       const authenticated = isCodexAuthenticatedFromStatus(output);

@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { runCli } from "./run-cli";
 import { STATUS_CHECK_TIMEOUT_MS } from "./constants";
+import { getCodexExecutionEnv } from "./codex-home";
 import { createTempPath } from "../../shared/lib/temp-path";
 
 interface CodexCommandCandidate {
@@ -133,6 +134,7 @@ const parseCodexVersion = (output: string) => {
 
 const canRunCodexExec = async (command: string) => {
   const outputPath = createTempPath("dev-copilot-codex-smoke", ".txt");
+  const env = await getCodexExecutionEnv();
 
   try {
     await runCli(
@@ -156,6 +158,7 @@ const canRunCodexExec = async (command: string) => {
         cwd: process.cwd(),
         timeoutMs: STATUS_CHECK_TIMEOUT_MS,
         maxBuffer: 1024 * 512,
+        env,
       },
     );
     return true;
