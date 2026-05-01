@@ -10,6 +10,11 @@ const sidebars: SidebarsConfig = {
         "quick-start",
         {
           type: "category",
+          label: "⚙️ configs",
+          items: ["configs/eslint"],
+        },
+        {
+          type: "category",
           label: "🔤 types",
           items: ["types/strict-props-with-children"],
         },
