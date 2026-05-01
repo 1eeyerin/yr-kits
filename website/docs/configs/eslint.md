@@ -47,6 +47,23 @@ pnpm dlx @yr-kits/cli eslint --target next
 pnpm dlx @yr-kits/cli eslint --target next --skip-install
 ```
 
+## Settings
+
+생성되는 ESLint 설정에는 아래 항목이 포함됩니다.
+
+- TypeScript 권장 규칙을 적용합니다.
+- Prettier 포맷 위반을 에러로 처리합니다.
+- 사용하지 않는 import를 금지합니다.
+- 사용하지 않는 변수는 에러로 처리하되, `_`로 시작하는 변수와 인자는 허용합니다.
+- import 순서를 `builtin`, `external`, `internal`, `parent/sibling/index`, `type` 순서로 정리합니다.
+- import 그룹 사이에는 빈 줄을 둡니다.
+- `react`, `next`, `@/**` 경로는 우선순위가 있는 그룹으로 정렬합니다.
+- JSX props와 children에서 불필요한 `{}` 사용을 금지합니다.
+- TanStack Query의 불안정한 의존성 사용과 불안정한 QueryClient 생성을 금지합니다.
+- React target은 React, React Hooks 규칙을 함께 적용합니다.
+- React target은 TypeScript 기준으로 `react/prop-types`, `react/react-in-jsx-scope`를 끕니다.
+- Next target은 Next.js Core Web Vitals와 Next.js TypeScript 규칙을 함께 적용합니다.
+
 ## Dependencies
 
 명령을 실행하면 target에 필요한 ESLint 관련 패키지를 devDependencies로 설치합니다.
@@ -75,21 +92,9 @@ Next target 추가 패키지:
 
 - `eslint-config-next`
 
-## Scripts
-
-`package.json`에 `lint` 스크립트가 없으면 자동으로 추가합니다.
-
-```json
-{
-  "scripts": {
-    "lint": "eslint ."
-  }
-}
-```
-
-이미 `lint` 스크립트가 있으면 기존 값을 유지합니다.
-
 ## Notes
 
+- `package.json`에 `lint` 스크립트가 없으면 자동으로 추가합니다.
+- 이미 `lint` 스크립트가 있으면 기존 값을 유지합니다.
 - lockfile이 없으면 `pnpm`을 기본값으로 사용합니다.
 - Next target은 `next`, `react`, `react-dom`을 설치하지 않습니다.
