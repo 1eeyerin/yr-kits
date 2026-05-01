@@ -1,6 +1,6 @@
 {
   "name": "@yr-kits/cli",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "프론트엔드 프로젝트에 유틸리티, 훅, 타입, 설정 파일을 추가하는 CLI",
   "type": "module",
   "bin": {
