@@ -8,6 +8,7 @@ const config: Config = {
   tagline: "CLI로 유틸/컴포넌트 자동 설치하는 모노레포",
   url: "https://yr-kits.vercel.app",
   baseUrl: "/",
+  noIndex: true,
 
   organizationName: "yr-kits",
   projectName: "yr-kits",
@@ -70,7 +71,7 @@ const config: Config = {
     },
     footer: {
       style: "dark",
-      copyright: `Copyright © ${new Date().getFullYear()} yr-kits. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} yr-kits. All rights reserved.`,
     },
     prism: {
       theme: prismThemes.github,
