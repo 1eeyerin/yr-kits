@@ -15,6 +15,7 @@ pnpm run dev-copilot-bridge
 
 - 기본 에이전트: `codex`
 - 에이전트 선택 옵션: `CLI 인자(codex/claude)`
+- 기본 브리지 URL: `http://127.0.0.1:3339`
 
 ```bash
 # 포트 변경시
@@ -24,6 +25,8 @@ pnpm run dev-copilot-bridge -p 3000
 pnpm run dev-copilot-bridge claude
 pnpm run dev-copilot-bridge claude -p 3000
 ```
+
+브리지 포트를 변경하면 React 설정의 `bridgeBaseUrl`도 같은 포트로 맞춰야 합니다.
 
 ## Requirements
 
@@ -52,6 +55,7 @@ import { DevCopilotOverlay, DevCopilotProvider } from "@yr-kits/dev-copilot";
 const config = {
   enabled: process.env.NODE_ENV === "development",
   allowedPaths: ["src", "app", "components", "features", "shared"],
+  bridgeBaseUrl: "http://127.0.0.1:3339",
 };
 
 export function AppDevCopilot() {
@@ -65,10 +69,11 @@ export function AppDevCopilot() {
 
 ## Config
 
-| 속성         | 타입     | 기본값                                 |
-| ------------ | -------- | -------------------------------------- |
-| enabled      | boolean  | process.env.NODE_ENV === "development" |
-| allowedPaths | string[] | ["."]                                  |
+| 속성          | 타입     | 기본값                                 |
+| ------------- | -------- | -------------------------------------- |
+| enabled       | boolean  | process.env.NODE_ENV === "development" |
+| allowedPaths  | string[] | ["."]                                  |
+| bridgeBaseUrl | string   | "http://127.0.0.1:3339"                |
 
 ## Troubleshooting
 

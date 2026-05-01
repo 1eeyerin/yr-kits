@@ -1,6 +1,6 @@
 {
   "name": "@yr-kits/dev-copilot",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "선택 텍스트 기반 Dev Copilot 오버레이와 로컬 브리지 실행 CLI",
   "type": "module",
   "main": "./dist/index.mjs",
