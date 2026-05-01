@@ -2,6 +2,7 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
+import { initEslint, type EslintTarget } from "./utils/init-eslint.js";
 import { DEFAULT_CONFIG } from "./utils/config.js";
 import { copyTemplate } from "./utils/copy-template.js";
 
@@ -30,9 +31,44 @@ const TEMPLATE_TO_ALIAS: Record<
 
 const program = new Command();
 
+async function runEslintInit(options: { target?: string; skipInstall?: boolean }) {
+  if (options.target !== "react" && options.target !== "next") {
+    console.error("💬 --target react 또는 --target next를 지정해주세요.");
+    process.exit(1);
+  }
+
+  try {
+    const result = await initEslint({
+      cwd: process.cwd(),
+      templatesPath: getTemplatesPath(),
+      target: options.target as EslintTarget,
+      skipInstall: options.skipInstall,
+    });
+
+    if (result.backupPath) {
+      console.log(`기존 ESLint 설정을 백업했어요: ${result.backupPath}`);
+    }
+
+    if (result.lintScriptAdded) {
+      console.log("package.json에 lint 스크립트를 추가했어요.");
+    }
+
+    if (options.skipInstall) {
+      console.log("의존성 설치를 건너뛰었어요.");
+    } else {
+      console.log(`${result.packageManager}로 ESLint 의존성 설치를 완료했어요.`);
+    }
+
+    console.log(`eslint.config.mjs에 ${result.target} 설정을 추가했어요.`);
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
+  }
+}
+
 program
   .name("yr-kits")
-  .description("CLI to add utilities & components")
+  .description("프론트엔드 프로젝트에 유틸리티, 훅, 타입, 설정 파일을 추가하는 CLI")
   .version("0.1.0");
 
 program
@@ -66,5 +102,12 @@ program
       process.exit(1);
     }
   });
+
+program
+  .command("eslint")
+  .description("💬 ESLint 설정 파일을 추가합니다.")
+  .option("--target <target>", "eslint 설정 대상: react 또는 next")
+  .option("--skip-install", "의존성 설치를 건너뜁니다.")
+  .action(runEslintInit);
 
 program.parse();
