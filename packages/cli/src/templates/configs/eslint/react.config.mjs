@@ -1,3 +1,4 @@
+// yr-kits로 생성된 React ESLint 설정입니다. 프로젝트에 맞게 자유롭게 수정해도 됩니다.
 import js from "@eslint/js";
 import pluginQuery from "@tanstack/eslint-plugin-query";
 import tsPlugin from "@typescript-eslint/eslint-plugin";

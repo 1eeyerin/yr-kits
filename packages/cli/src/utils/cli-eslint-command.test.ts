@@ -81,3 +81,25 @@ test("init eslint 명령은 지원하지 않는다", async () => {
     await rm(outDir, { recursive: true, force: true });
   }
 });
+
+test("prettier 명령은 Prettier 설정 파일을 생성한다", async () => {
+  const cliPath = await buildCliFixture();
+  const outDir = join(cliPath, "..");
+  const cwd = await mkdtemp(join(tmpdir(), "yr-kits-prettier-command-project-"));
+  await writeFile(join(cwd, "package.json"), JSON.stringify({ name: "fixture" }), "utf-8");
+
+  try {
+    const { stdout } = await execFileAsync(
+      "node",
+      [cliPath, "prettier", "--skip-install"],
+      { cwd },
+    );
+
+    const config = await readFile(join(cwd, ".prettierrc.js"), "utf-8");
+
+    assert.match(stdout, /\.prettierrc\.js 설정을 추가했어요/);
+    assert.match(config, /prettier-plugin-tailwindcss/);
+  } finally {
+    await rm(outDir, { recursive: true, force: true });
+  }
+});

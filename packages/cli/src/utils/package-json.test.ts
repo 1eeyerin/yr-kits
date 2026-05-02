@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { ensureLintScript } from "./package-json";
+import { ensureFormatScript, ensureLintScript } from "./package-json";
 
 async function createTempProject(packageJson: object) {
   const cwd = await mkdtemp(join(tmpdir(), "yr-kits-pkg-"));
@@ -31,4 +31,25 @@ test("ensureLintScript는 기존 lint 스크립트를 유지한다", async () =>
 
   assert.equal(result, false);
   assert.equal(packageJson.scripts.lint, "next lint");
+});
+
+test("ensureFormatScript는 format 스크립트가 없으면 prettier . --write를 추가한다", async () => {
+  const cwd = await createTempProject({ name: "fixture", scripts: { test: "node --test" } });
+
+  const result = await ensureFormatScript(cwd);
+  const packageJson = JSON.parse(await readFile(join(cwd, "package.json"), "utf-8"));
+
+  assert.equal(result, true);
+  assert.equal(packageJson.scripts.format, "prettier . --write");
+  assert.equal(packageJson.scripts.test, "node --test");
+});
+
+test("ensureFormatScript는 기존 format 스크립트를 유지한다", async () => {
+  const cwd = await createTempProject({ name: "fixture", scripts: { format: "prettier --check ." } });
+
+  const result = await ensureFormatScript(cwd);
+  const packageJson = JSON.parse(await readFile(join(cwd, "package.json"), "utf-8"));
+
+  assert.equal(result, false);
+  assert.equal(packageJson.scripts.format, "prettier --check .");
 });

@@ -112,7 +112,7 @@ export async function initEslint(options: InitEslintOptions): Promise<InitEslint
 
   const packageManager = await detectPackageManager(cwd);
   const backupPath = await backupExistingConfig(cwd, now);
-  const sourcePath = join(templatesPath, "eslint", `${target}.config.mjs`);
+  const sourcePath = join(templatesPath, "configs", "eslint", `${target}.config.mjs`);
   const configPath = join(cwd, "eslint.config.mjs");
 
   try {

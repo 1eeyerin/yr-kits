@@ -16,6 +16,9 @@ pnpm dlx @yr-kits/cli add [템플릿-이름] -d ./src/utils
 # ESLint 설정 추가
 pnpm dlx @yr-kits/cli eslint --target react
 pnpm dlx @yr-kits/cli eslint --target next
+
+# Prettier 설정 추가
+pnpm dlx @yr-kits/cli prettier
 ```
 
 ## Templates
@@ -25,6 +28,7 @@ pnpm dlx @yr-kits/cli eslint --target next
 | 명령   | 설명                                |
 | ------ | ----------------------------------- |
 | eslint | React/Next.js ESLint flat config 생성 |
+| prettier | Prettier 설정 파일 생성 |
 
 ### types
 

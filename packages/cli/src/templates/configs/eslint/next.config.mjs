@@ -1,3 +1,4 @@
+// yr-kits로 생성된 Next.js ESLint 설정입니다. 프로젝트에 맞게 자유롭게 수정해도 됩니다.
 import pluginQuery from "@tanstack/eslint-plugin-query";
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";

@@ -11,7 +11,7 @@ const sidebars: SidebarsConfig = {
         {
           type: "category",
           label: "⚙️ configs",
-          items: ["configs/eslint"],
+          items: ["configs/eslint", "configs/prettier"],
         },
         {
           type: "category",
