@@ -1,47 +1,18 @@
-import { delimiter, join } from "node:path";
-
+import { collectCliCandidates } from "./cli-candidates";
 import { runCli } from "./run-cli";
 import { QUICK_STATUS_CHECK_TIMEOUT_MS } from "./constants";
-
-interface ClaudeCommandCandidate {
-  command: string;
-  source: "env" | "path";
-}
 
 let claudeCommandPromise: Promise<string> | null = null;
 
 const CLAUDE_SMOKE_MODEL = process.env.DEV_COPILOT_CLAUDE_MODEL ?? "haiku";
 
-const getPathExecutableNames = () => {
-  if (process.platform !== "win32") {
-    return ["claude"];
-  }
-
-  const pathExts = process.env.PATHEXT?.split(";").filter(Boolean) ?? [".EXE", ".CMD", ".BAT"];
-  return ["claude", ...pathExts.map((ext) => `claude${ext.toLowerCase()}`)];
-};
-
 const collectClaudeCandidates = () => {
-  const candidates: ClaudeCommandCandidate[] = [];
-  const envCommand = process.env.DEV_COPILOT_CLAUDE_BIN?.trim();
-
-  if (envCommand) {
-    candidates.push({ command: envCommand, source: "env" });
-  }
-
-  const executableNames = getPathExecutableNames();
-  const pathCandidates = (process.env.PATH ?? "")
-    .split(delimiter)
-    .filter(Boolean)
-    .flatMap((pathDir) => executableNames.map((name) => join(pathDir, name)));
-
-  for (const command of pathCandidates) {
-    candidates.push({ command, source: "path" });
-  }
-
-  return Array.from(
-    new Map(candidates.map((candidate) => [candidate.command, candidate])).values(),
-  );
+  return collectCliCandidates({
+    binaryName: "claude",
+    envVarName: "DEV_COPILOT_CLAUDE_BIN",
+    macAppNames: ["Claude"],
+    windowsAppExecutableNames: ["Claude.exe", "claude.exe"],
+  });
 };
 
 const canRunClaude = async (command: string) => {
@@ -80,7 +51,7 @@ export const resolveClaudeCommand = async () => {
   }
 
   claudeCommandPromise = (async () => {
-    const candidates = collectClaudeCandidates();
+    const candidates = await collectClaudeCandidates();
     const envCandidate = candidates.find((candidate) => candidate.source === "env");
 
     if (envCandidate) {

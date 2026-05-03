@@ -1,54 +1,22 @@
-import { access } from "node:fs/promises";
-import { delimiter, join } from "node:path";
-
+import type { CliCommandCandidate } from "./cli-candidates";
+import { collectCliCandidates } from "./cli-candidates";
 import { STATUS_CHECK_TIMEOUT_MS } from "./constants";
 import { runCli } from "./run-cli";
 
-interface CodexCommandCandidate {
-  command: string;
-}
-
-interface ResolvedCodexCommand extends CodexCommandCandidate {
+interface ResolvedCodexCommand extends CliCommandCandidate {
   version: string;
 }
 
 let codexCommandPromise: Promise<string> | null = null;
 
-const canAccess = async (path: string) => {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-const getPathExecutableNames = () => {
-  if (process.platform !== "win32") {
-    return ["codex"];
-  }
-
-  const pathExts = process.env.PATHEXT?.split(";").filter(Boolean) ?? [".EXE", ".CMD", ".BAT"];
-  return ["codex", ...pathExts.map((ext) => `codex${ext.toLowerCase()}`)];
-};
-
 const collectCodexCandidates = async () => {
-  const executableNames = getPathExecutableNames();
-  const candidates: CodexCommandCandidate[] = [];
-  const pathCandidates = (process.env.PATH ?? "")
-    .split(delimiter)
-    .filter(Boolean)
-    .flatMap((pathDir) => executableNames.map((name) => join(pathDir, name)));
-
-  for (const command of pathCandidates) {
-    if (await canAccess(command)) {
-      candidates.push({ command });
-    }
-  }
-
-  return Array.from(
-    new Map(candidates.map((candidate) => [candidate.command, candidate])).values(),
-  );
+  return collectCliCandidates({
+    binaryName: "codex",
+    envVarName: "DEV_COPILOT_CODEX_BIN",
+    macBundleIds: ["com.openai.codex"],
+    macAppNames: ["Codex"],
+    windowsAppExecutableNames: ["Codex.exe", "codex.exe"],
+  });
 };
 
 const parseCodexVersion = (output: string) => {
@@ -63,7 +31,7 @@ const parseCodexVersion = (output: string) => {
   };
 };
 
-const resolveCandidate = async (candidate: CodexCommandCandidate) => {
+const resolveCandidate = async (candidate: CliCommandCandidate) => {
   const { stdout, stderr } = await runCli(candidate.command, ["--version"], {
     cwd: process.cwd(),
     timeoutMs: STATUS_CHECK_TIMEOUT_MS,

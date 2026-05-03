@@ -1,4 +1,4 @@
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -81,6 +81,35 @@ test("resolveCodexCommand는 PATH 순서를 따른다", async () => {
 
   try {
     assert.equal(await resolveCodexCommand(), firstCommand);
+  } finally {
+    process.env.PATH = originalPath;
+    __internal.resetCodexCommandCacheForTests();
+  }
+});
+
+test("resolveCodexCommand는 PATH에 없어도 macOS 앱 등록 위치에서 Codex CLI를 찾는다", async () => {
+  __internal.resetCodexCommandCacheForTests();
+  const toolDir = await mkdtemp(join(tmpdir(), "dev-copilot-codex-tools-"));
+  const appParentDir = await mkdtemp(join(tmpdir(), "dev-copilot-codex-app-"));
+  const appDir = join(appParentDir, "Codex.app");
+  const resourcesDir = join(appDir, "Contents", "Resources");
+  await mkdir(resourcesDir, { recursive: true });
+  const codexCommand = await createFakeCodex(resourcesDir, "0.150.0");
+  const mdfindPath = join(toolDir, "mdfind");
+  const originalPath = process.env.PATH;
+
+  await writeFile(
+    mdfindPath,
+    `#!/usr/bin/env node
+console.log(${JSON.stringify(appDir)});
+`,
+    { mode: 0o755 },
+  );
+
+  process.env.PATH = [toolDir, dirname(process.execPath)].filter(Boolean).join(":");
+
+  try {
+    assert.equal(await resolveCodexCommand(), codexCommand);
   } finally {
     process.env.PATH = originalPath;
     __internal.resetCodexCommandCacheForTests();
