@@ -103,3 +103,25 @@ test("prettier 명령은 Prettier 설정 파일을 생성한다", async () => {
     await rm(outDir, { recursive: true, force: true });
   }
 });
+
+test("husky-commit-msg 명령은 commit-msg 훅을 생성한다", async () => {
+  const cliPath = await buildCliFixture();
+  const outDir = join(cliPath, "..");
+  const cwd = await mkdtemp(join(tmpdir(), "yr-kits-husky-command-project-"));
+  await writeFile(join(cwd, "package.json"), JSON.stringify({ name: "fixture" }), "utf-8");
+
+  try {
+    const { stdout } = await execFileAsync(
+      "node",
+      [cliPath, "husky-commit-msg", "--skip-install"],
+      { cwd },
+    );
+
+    const hook = await readFile(join(cwd, ".husky", "commit-msg"), "utf-8");
+
+    assert.match(stdout, /\.husky\/commit-msg 훅을 추가했어요/);
+    assert.match(hook, /올바른 형식: <type>\(<scope>\): <한글 메시지>/);
+  } finally {
+    await rm(outDir, { recursive: true, force: true });
+  }
+});

@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { ensureFormatScript, ensureLintScript } from "./package-json";
+import { ensureFormatScript, ensureLintScript, ensurePrepareScript } from "./package-json";
 
 async function createTempProject(packageJson: object) {
   const cwd = await mkdtemp(join(tmpdir(), "yr-kits-pkg-"));
@@ -52,4 +52,25 @@ test("ensureFormatScript는 기존 format 스크립트를 유지한다", async (
 
   assert.equal(result, false);
   assert.equal(packageJson.scripts.format, "prettier --check .");
+});
+
+test("ensurePrepareScript는 prepare 스크립트가 없으면 husky를 추가한다", async () => {
+  const cwd = await createTempProject({ name: "fixture", scripts: { test: "node --test" } });
+
+  const result = await ensurePrepareScript(cwd);
+  const packageJson = JSON.parse(await readFile(join(cwd, "package.json"), "utf-8"));
+
+  assert.equal(result, true);
+  assert.equal(packageJson.scripts.prepare, "husky");
+  assert.equal(packageJson.scripts.test, "node --test");
+});
+
+test("ensurePrepareScript는 기존 prepare 스크립트를 유지한다", async () => {
+  const cwd = await createTempProject({ name: "fixture", scripts: { prepare: "custom prepare" } });
+
+  const result = await ensurePrepareScript(cwd);
+  const packageJson = JSON.parse(await readFile(join(cwd, "package.json"), "utf-8"));
+
+  assert.equal(result, false);
+  assert.equal(packageJson.scripts.prepare, "custom prepare");
 });
