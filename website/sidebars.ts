@@ -11,7 +11,7 @@ const sidebars: SidebarsConfig = {
         {
           type: "category",
           label: "⚙️ configs",
-          items: ["configs/eslint", "configs/prettier"],
+          items: ["configs/eslint", "configs/prettier", "configs/husky-commit-msg"],
         },
         {
           type: "category",

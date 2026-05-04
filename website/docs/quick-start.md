@@ -19,16 +19,20 @@ pnpm dlx @yr-kits/cli eslint --target next
 
 # Prettier 설정 추가
 pnpm dlx @yr-kits/cli prettier
+
+# Husky commit-msg 훅 추가
+pnpm dlx @yr-kits/cli husky-commit-msg
 ```
 
 ## Templates
 
 ### configs
 
-| 명령   | 설명                                |
-| ------ | ----------------------------------- |
-| eslint | React/Next.js ESLint flat config 생성 |
-| prettier | Prettier 설정 파일 생성 |
+| 명령     | 설명                                  |
+| -------- | ------------------------------------- |
+| eslint   | React/Next.js ESLint flat config 생성 |
+| prettier | Prettier 설정 파일 생성               |
+| husky-commit-msg | Husky commit-msg 훅 생성              |
 
 ### types
 
