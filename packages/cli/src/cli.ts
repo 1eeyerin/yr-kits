@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { initEslint, type EslintTarget } from "./utils/init-eslint.js";
+import { initHusky } from "./utils/init-husky.js";
 import { initPrettier } from "./utils/init-prettier.js";
 import { DEFAULT_CONFIG } from "./utils/config.js";
 import { copyTemplate } from "./utils/copy-template.js";
@@ -96,6 +97,35 @@ async function runPrettierInit(options: { skipInstall?: boolean }) {
   }
 }
 
+async function runHuskyInit(options: { skipInstall?: boolean }) {
+  try {
+    const result = await initHusky({
+      cwd: process.cwd(),
+      templatesPath: getTemplatesPath(),
+      skipInstall: options.skipInstall,
+    });
+
+    if (result.backupPaths.length > 0) {
+      console.log(`기존 Husky 훅을 백업했어요: ${result.backupPaths.join(", ")}`);
+    }
+
+    if (result.prepareScriptAdded) {
+      console.log("package.json에 prepare 스크립트를 추가했어요.");
+    }
+
+    if (options.skipInstall) {
+      console.log("의존성 설치를 건너뛰었어요.");
+    } else {
+      console.log(`${result.packageManager}로 Husky 의존성 설치를 완료했어요.`);
+    }
+
+    console.log(".husky/commit-msg 훅을 추가했어요.");
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
+  }
+}
+
 program
   .name("yr-kits")
   .description("프론트엔드 프로젝트에 유틸리티, 훅, 타입, 설정 파일을 추가하는 CLI")
@@ -145,5 +175,11 @@ program
   .description("💬 Prettier 설정 파일을 추가합니다.")
   .option("--skip-install", "의존성 설치를 건너뜁니다.")
   .action(runPrettierInit);
+
+program
+  .command("husky-commit-msg")
+  .description("💬 Husky commit-msg 훅을 추가합니다.")
+  .option("--skip-install", "의존성 설치를 건너뜁니다.")
+  .action(runHuskyInit);
 
 program.parse();
