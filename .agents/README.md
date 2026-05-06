@@ -1,0 +1,17 @@
+# Agents 운영 가이드
+
+이 폴더는 에이전트가 프로젝트 규칙, 반복 작업, 재사용 스킬을 찾는 진입점이다.
+
+## 폴더 역할
+
+```text
+.agents/
+  README.md       # 이 폴더 운영 규칙
+  docs/           # 프로젝트 작업 지침서
+  commands/       # 반복 작업용 에이전트 커맨드
+  skills/         # 재사용 가능한 외부/로컬 스킬
+```
+
+## 세부 운영 문서
+
+- 지침 추가/수정 기준: `.agents/docs/agents-maintenance.md`
