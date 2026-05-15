@@ -11,6 +11,7 @@
 - 네이밍/export/패키지 컨벤션: `.agents/docs/conventions.md`
 - 스택/스크립트/검증 명령: `.agents/docs/tech-stack.md`, `.agents/docs/workflow.md`
 - 리뷰/마무리 점검: `.agents/docs/review-checklist.md`
+- 프로젝트 지침/구조/문서 변경: `.agents/docs/agents-maintenance.md`
 
 ## 핵심 규칙
 
@@ -24,4 +25,5 @@
 - 공개 API는 각 패키지의 `exports`와 `src/index.ts`를 기준으로 최소화한다.
 - `dist`, `website/build`, `website/.docusaurus`, `node_modules`는 생성물로 보고 직접 수정하지 않는다.
 - Zeplin 링크가 있으면 Zeplin MCP 응답값만 사용하고 추측하지 않는다.
+- 워크스페이스, 패키지, 레이어 구조나 핵심 폴더 구성이 달라지면 관련 `.agents/docs` 문서도 함께 업데이트한다.
 - 요청 범위 밖 리팩터링이나 임의 revert를 하지 않는다.
