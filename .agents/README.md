@@ -11,7 +11,3 @@
   commands/       # 반복 작업용 에이전트 커맨드
   skills/         # 재사용 가능한 외부/로컬 스킬
 ```
-
-## 세부 운영 문서
-
-- 지침 추가/수정 기준: `.agents/docs/agents-maintenance.md`
