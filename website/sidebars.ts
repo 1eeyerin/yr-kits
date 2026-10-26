@@ -5,6 +5,17 @@ const sidebars: SidebarsConfig = {
     "intro",
     {
       type: "category",
+      label: "Skills",
+      items: [
+        "skills/overview",
+        "skills/installation",
+        "skills/smart-commit",
+        "skills/create-pr",
+        "skills/update-pr",
+      ],
+    },
+    {
+      type: "category",
       label: "CLI",
       items: [
         "quick-start",
@@ -40,11 +51,6 @@ const sidebars: SidebarsConfig = {
           items: ["dev-copilot/overview"],
         },
       ],
-    },
-    {
-      type: "category",
-      label: "Skills",
-      items: ["skills/overview"],
     },
   ],
 };
