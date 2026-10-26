@@ -41,6 +41,11 @@ const sidebars: SidebarsConfig = {
         },
       ],
     },
+    {
+      type: "category",
+      label: "Skills",
+      items: ["skills/overview"],
+    },
   ],
 };
 

@@ -20,5 +20,11 @@
       <td><strong>Packages</strong></td>
       <td><code>@yr-kits/*</code> 패키지를 설치해서 사용합니다.</td>
     </tr>
+    <tr>
+      <td><strong>Skills</strong></td>
+      <td>Claude Code에 커밋·PR 생성·PR 업데이트 스킬을 설치합니다.</td>
+    </tr>
   </tbody>
 </table>
+
+스킬을 사용하려면 [Git 작업 스킬 설치 및 사용](./skills/overview.md)을 확인하세요.
